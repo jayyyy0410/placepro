@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% block title %}Analytics — PlacePro{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+{% block extra_styles %}
+.charts-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 16px;
+margin-top: 20px;
+}
+.chart-card {
+background: var(--surface);
+border: 1px solid var(--border);
+border-radius: var(--radius);
+padding: 22px;
+transition: border-color 0.2s;
+animation: fadeUp 0.5s ease both;
+}
+.chart-card:hover { border-color: var(--border2); }
+.chart-card.full { grid-column: 1 / -1; }
+.chart-header { display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px; }
+.chart-title { font-size:0.9rem;font-weight:700;color:var(--text); }
+.chart-subtitle { font-size:0.72rem;color:var(--muted);margin-top:2px; }
+.chart-chip {
+font-size:0.65rem;font-family:'JetBrains Mono',monospace;
+padding:3px 9px;border-radius:99px;
+background:rgba(99,102,241,0.1);color:var(--accent);
+border:1px solid rgba(99,102,241,0.2);
+white-space:nowrap;
+}
+.chart-wrap { position:relative;height:240px; }
+.chart-wrap.tall { height:280px; }
+@media (max-width:860px) { .charts-grid { grid-template-columns:1fr; } .chart-card.full { grid-column:auto; } }
+{% endblock %}
+{% block content %}
+
+<!-- ─── STAT CARDS ─── -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:4px;">
+  <div class="stat-card" style="--card-accent:linear-gradient(135deg,#6366f1,#8b5cf6);">
+    <div class="stat-icon" style="background:rgba(99,102,241,0.15);color:#818cf8;"><i class="bi bi-people-fill"></i>
+    </div>
+    <div class="stat-val">{{ total_students }}</div>
+    <div class="stat-label">Students</div>
+  </div>
+  <div class="stat-card" style="--card-accent:linear-gradient(135deg,#22c55e,#10b981);">
+    <div class="stat-icon" style="background:rgba(34,197,94,0.15);color:#4ade80;"><i class="bi bi-building-fill"></i>
+    </div>
+    <div class="stat-val">{{ total_companies }}</div>
+    <div class="stat-label">Companies</div>
+  </div>
+  <div class="stat-card" style="--card-accent:linear-gradient(135deg,#f59e0b,#f97316);">
+    <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:#fbbf24;"><i
+        class="bi bi-calendar-event-fill"></i></div>
+    <div class="stat-val">{{ total_drives }}</div>
+    <div class="stat-label">Drives</div>
+  </div>
+  <div class="stat-card" style="--card-accent:linear-gradient(135deg,#06b6d4,#3b82f6);">
+    <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:#22d3ee;"><i
+        class="bi bi-file-earmark-text-fill"></i></div>
+    <div class="stat-val">{{ total_applications }}</div>
+    <div class="stat-label">Applications</div>
+  </div>
+</div>
+
+<!-- ─── CHARTS ─── -->
+<div class="charts-grid">
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Application Status</div>
+        <div class="chart-subtitle">Distribution by current status</div>
+      </div>
+      <span class="chart-chip">Doughnut</span>
+    </div>
+    <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Drives per Company</div>
+        <div class="chart-subtitle">Recruiter activity breakdown</div>
+      </div>
+      <span class="chart-chip">Bar</span>
+    </div>
+    <div class="chart-wrap"><canvas id="drivesChart"></canvas></div>
+  </div>
+
+  <div class="chart-card full">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Portal Summary</div>
+        <div class="chart-subtitle">Aggregate counts across all entities</div>
+      </div>
+      <span class="chart-chip">Overview</span>
+    </div>
+    <div class="chart-wrap tall"><canvas id="overallChart"></canvas></div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  Chart.defaults.color = '#64748b';
+  Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+  Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+
+  const PALETTE = ['#6366f1', '#22c55e', '#f59e0b', '#06b6d4', '#f87171', '#a78bfa', '#34d399'];
+
+  const tooltipDefaults = {
+    backgroundColor: '#101828',
+    borderColor: 'rgba(255,255,255,0.07)',
+    borderWidth: 1,
+    titleColor: '#e8edf5',
+    bodyColor: '#64748b',
+    padding: 12,
+    cornerRadius: 10,
+  };
+
+  /* Doughnut */
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: {{ statuses | tojson }},
+    datasets: [{ data: {{ status_counts | tojson }}, backgroundColor: PALETTE, borderColor: '#101828', borderWidth: 3, hoverOffset: 8 }]
+    },
+    options: {
+    responsive: true, maintainAspectRatio: false, cutout: '65%',
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#94a3b8', padding: 18, usePointStyle: true, pointStyleWidth: 8, font: { size: 12 } } },
+      tooltip: tooltipDefaults
+    }
+  }
+  });
+
+  /* Drives per company */
+  new Chart(document.getElementById('drivesChart'), {
+    type: 'bar',
+    data: {
+      labels: {{ company_names | tojson }},
+    datasets: [{
+      label: 'Drives',
+      data: {{ drive_counts | tojson }},
+    backgroundColor: 'rgba(99,102,241,0.2)',
+    borderColor: '#6366f1',
+    borderWidth: 2,
+    borderRadius: 8,
+    borderSkipped: false
+      }]
+    },
+    options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: tooltipDefaults },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#64748b', maxRotation: 30 } },
+      y: { beginAtZero: true, ticks: { stepSize: 1, color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  }
+  });
+
+  /* Overall */
+  new Chart(document.getElementById('overallChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Students', 'Companies', 'Drives', 'Applications'],
+      datasets: [{
+        label: 'Count',
+        data: [{{ total_students }}, {{ total_companies }}, {{ total_drives }}, {{ total_applications }}],
+    backgroundColor: ['rgba(99,102,241,0.2)', 'rgba(34,197,94,0.2)', 'rgba(245,158,11,0.2)', 'rgba(6,182,212,0.2)'],
+    borderColor: ['#6366f1', '#22c55e', '#f59e0b', '#06b6d4'],
+    borderWidth: 2, borderRadius: 10, borderSkipped: false
+      }]
+    },
+    options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: tooltipDefaults },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 13, weight: '600' } } },
+      y: { beginAtZero: true, ticks: { stepSize: 1, color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+    }
+  }
+  });
+</script>
+{% endblock %}

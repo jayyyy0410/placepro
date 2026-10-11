@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% block title %}Applicants — {{ drive.job_title }} — PlacePro{% endblock %}
+{% block page_title %}Applicants{% endblock %}
+{% block content %}
+
+<div class="fade-up" style="margin-bottom:20px;">
+  <a href="{{ url_for('company_dashboard') }}" class="btn btn-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> Back to Dashboard
+  </a>
+</div>
+
+<!-- Drive Header -->
+<div class="card fade-up" style="margin-bottom:16px;border-left:3px solid var(--accent);">
+  <div class="card-body" style="padding:20px 24px;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div style="width:46px;height:46px;border-radius:12px;background:rgba(99,102,241,0.15);
+                  display:grid;place-items:center;font-size:1.1rem;color:var(--accent);flex-shrink:0;">
+        <i class="bi bi-briefcase-fill"></i>
+      </div>
+      <div>
+        <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:2px;">{{ drive.job_title }}</h2>
+        <div style="font-size:0.78rem;color:var(--muted);">
+          Reviewing all applicants for this drive ·
+          <span style="color:var(--accent);font-weight:600;">{{ applications|length }} total</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Applicants Table -->
+<div class="card fade-up">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Applicant</th>
+          <th>Department</th>
+          <th>CGPA</th>
+          <th>Skills</th>
+          <th>Status</th>
+          <th>Update Status</th>
+          <th>Profile</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for a in applications %}
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:9px;background:rgba(34,197,94,0.12);
+                        display:grid;place-items:center;font-size:0.82rem;color:#4ade80;font-weight:700;flex-shrink:0;">
+              {{ a.student.full_name[0].upper() if a.student.full_name else '?' }}
+            </div>
+            <div style="font-weight:600;font-size:0.875rem;">{{ a.student.full_name }}</div>
+          </div>
+        </td>
+        <td>
+          <span style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+                       padding:3px 9px;font-size:0.72rem;font-weight:600;color:var(--muted2);">
+            {{ a.student.department or '—' }}
+          </span>
+        </td>
+        <td>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:0.85rem;font-weight:600;
+                       color:{% if a.student.cgpa and a.student.cgpa >= 8 %}#4ade80{% elif a.student.cgpa and a.student.cgpa >= 6 %}#fbbf24{% else %}var(--muted){% endif %};">
+            {{ a.student.cgpa or '—' }}
+          </span>
+        </td>
+        <td style="max-width:160px;">
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">
+            {% if a.student.skills %}
+            {% for skill in a.student.skills.split(',')[:2] %}
+            <span style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;
+                         padding:2px 7px;font-size:0.68rem;color:var(--muted2);">{{ skill.strip() }}</span>
+            {% endfor %}
+            {% else %}—{% endif %}
+          </div>
+        </td>
+        <td><span class="badge badge-{{ a.status | lower }}">{{ a.status }}</span></td>
+        <td>
+          <form method="POST" action="{{ url_for('update_status', id=a.id) }}" style="display:flex;gap:6px;align-items:center;">
+            <select name="status" class="form-select" style="width:auto;padding:5px 10px;font-size:0.78rem;">
+              {% for s in ['Applied','Shortlisted','Interview','Selected','Rejected','Placed'] %}
+              <option {% if a.status == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-xs">
+              <i class="bi bi-check-lg"></i>
+            </button>
+          </form>
+        </td>
+        <td>
+          {% if a.status in ['Shortlisted', 'Interview', 'Selected'] %}
+          <a href="{{ url_for('view_student_profile', student_id=a.student.id) }}"
+             class="btn btn-outline-primary btn-xs">
+            <i class="bi bi-eye"></i> View
+          </a>
+          {% else %}
+          <span style="font-size:0.72rem;color:var(--muted);">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7" style="text-align:center;padding:56px;color:var(--muted);">
+          <i class="bi bi-inbox" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:0.5;"></i>
+          No applicants yet.
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

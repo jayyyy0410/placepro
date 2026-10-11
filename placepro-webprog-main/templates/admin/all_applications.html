@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}All Applications — PlacePro{% endblock %}
+{% block page_title %}All Applications{% endblock %}
+{% block content %}
+
+<div class="card fade-up">
+  <div class="card-header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <i class="bi bi-file-earmark-text-fill" style="color:var(--cyan);"></i>
+      All Applications
+      <span class="badge badge-info">{{ applications|length }}</span>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Student</th>
+          <th>Drive</th>
+          <th>Company</th>
+          <th>Applied On</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in applications %}
+        <tr>
+          <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.78rem;">{{ a.id }}</td>
+          <td style="font-weight:600;font-size:0.875rem;">{{ a.student.full_name }}</td>
+          <td style="color:var(--muted2);font-size:0.82rem;">{{ a.drive.job_title }}</td>
+          <td style="color:var(--muted2);font-size:0.82rem;">{{ a.drive.company.company_name }}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--muted);">
+            {{ a.applied_at.strftime('%d %b %Y') }}
+          </td>
+          <td><span class="badge badge-{{ a.status | lower }}">{{ a.status }}</span></td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center;padding:48px;color:var(--muted);">
+            <i class="bi bi-inbox" style="font-size:2rem;display:block;margin-bottom:10px;"></i>
+            No applications yet.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

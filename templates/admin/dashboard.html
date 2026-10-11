@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard — PlacePro{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+<!-- ─── STAT CARDS ─── -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;">
+  <div class="stat-card" style="--card-accent:linear-gradient(135deg,#6366f1,#8b5cf6);">
+    <div class="stat-icon" style="background:rgba(99,102,241,0.15);color:#818cf8;">
+      <i class="bi bi-people-fill"></i>
+    </div>
+    <div class="stat-val" style="color:#e8edf5;">{{ students }}</div>
+    <div class="stat-label">Total Students</div>
+  </div>
+  <div class="stat-card" style="--card-accent:linear-gradient(135deg,#22c55e,#10b981);">
+    <div class="stat-icon" style="background:rgba(34,197,94,0.15);color:#4ade80;">
+      <i class="bi bi-building-fill"></i>
+    </div>
+    <div class="stat-val" style="color:#e8edf5;">{{ companies }}</div>
+    <div class="stat-label">Total Companies</div>
+  </div>
+  <div class="stat-card" style="--card-accent:linear-gradient(135deg,#f59e0b,#f97316);">
+    <div class="stat-icon" style="background:rgba(245,158,11,0.15);color:#fbbf24;">
+      <i class="bi bi-calendar-event-fill"></i>
+    </div>
+    <div class="stat-val" style="color:#e8edf5;">{{ drives }}</div>
+    <div class="stat-label">Active Drives</div>
+  </div>
+  <div class="stat-card" style="--card-accent:linear-gradient(135deg,#06b6d4,#3b82f6);">
+    <div class="stat-icon" style="background:rgba(6,182,212,0.15);color:#22d3ee;">
+      <i class="bi bi-file-earmark-text-fill"></i>
+    </div>
+    <div class="stat-val" style="color:#e8edf5;">{{ applications }}</div>
+    <div class="stat-label">Applications</div>
+  </div>
+</div>
+
+<!-- ─── PENDING ALERTS ─── -->
+{% if pending_companies > 0 or pending_drives > 0 %}
+<div class="alert alert-warning fade-up" style="margin-bottom:24px;">
+  <i class="bi bi-exclamation-triangle-fill" style="font-size:1.1rem;flex-shrink:0;"></i>
+  <div>
+    {% if pending_companies %}
+    <strong style="color:#fbbf24;">{{ pending_companies }} company(ies)</strong>
+    <span style="color:var(--muted2);"> awaiting approval.</span>
+    <a href="{{ url_for('admin_companies') }}"
+      style="color:#fbbf24;font-weight:600;text-decoration:none;margin-left:6px;">Review →</a>
+    {% endif %}
+    {% if pending_drives %}
+    {% if pending_companies %}&nbsp;&nbsp;&nbsp;{% endif %}
+    <strong style="color:#fbbf24;">{{ pending_drives }} drive(s)</strong>
+    <span style="color:var(--muted2);"> awaiting approval.</span>
+    <a href="{{ url_for('admin_drives') }}"
+      style="color:#fbbf24;font-weight:600;text-decoration:none;margin-left:6px;">Review →</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ─── QUICK ACTIONS ─── -->
+<div style="margin-bottom:20px;">
+  <h2
+    style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:14px;">
+    Quick Actions</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+    {% for href, icon, label, desc, color in [
+    (url_for('admin_companies'), 'building-fill', 'Manage Companies', 'Approve, reject, or blacklist', '#6366f1'),
+    (url_for('admin_students'), 'people-fill', 'Manage Students', 'View profiles and manage status', '#22c55e'),
+    (url_for('admin_drives'), 'calendar-event-fill', 'Placement Drives', 'Review and approve drive postings',
+    '#f59e0b'),
+    (url_for('admin_charts'), 'bar-chart-fill', 'Analytics', 'Charts, insights and statistics', '#06b6d4'),
+    ] %}
+    <a href="{{ href }}" class="fade-up" style="text-decoration:none;
+        display:flex;align-items:center;gap:16px;
+        background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+        padding:18px 20px;transition:border-color 0.2s,transform 0.2s;
+        animation-delay: {{ loop.index0 * 0.08 }}s;">
+      <div style="width:46px;height:46px;border-radius:12px;flex-shrink:0;
+                  background:rgba({{ color | replace('#','') }},0.1);
+                  display:grid;place-items:center;font-size:1.2rem;color:{{ color }};
+                  background:{{ color }}18;">
+        <i class="bi bi-{{ icon }}" style="color:{{ color }};"></i>
+      </div>
+      <div>
+        <div style="font-size:0.9rem;font-weight:700;color:var(--text);margin-bottom:3px;">{{ label }}</div>
+        <div style="font-size:0.75rem;color:var(--muted);">{{ desc }}</div>
+      </div>
+      <i class="bi bi-chevron-right" style="color:var(--muted);margin-left:auto;font-size:0.8rem;"></i>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+  a:hover .bi-chevron-right {
+    color: var(--accent) !important;
+  }
+
+  a[href]:hover {
+    border-color: var(--border2) !important;
+    transform: translateY(-2px);
+  }
+</style>
+{% endblock %}

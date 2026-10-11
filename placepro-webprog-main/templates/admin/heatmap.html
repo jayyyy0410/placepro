@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+{% block title %}Placement Heatmap — PlacePro{% endblock %}
+{% block page_title %}Placement Heatmap{% endblock %}
+{% block content %}
+
+{# ─── Summary Cards ─── #}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;">
+  <div class="stat-card fade-up">
+    <div class="stat-val" style="color:#818cf8;">{{ departments|length }}</div>
+    <div class="stat-label">Departments</div>
+  </div>
+  <div class="stat-card fade-up" style="animation-delay:.05s;">
+    <div class="stat-val" style="color:#22d3ee;">{{ companies|length }}</div>
+    <div class="stat-label">Companies</div>
+  </div>
+  <div class="stat-card fade-up" style="animation-delay:.1s;">
+    <div class="stat-val" style="color:#fbbf24;">{{ total_applications }}</div>
+    <div class="stat-label">Total Applied</div>
+  </div>
+  <div class="stat-card fade-up" style="animation-delay:.15s;">
+    <div class="stat-val" style="color:#4ade80;">{{ total_placements }}</div>
+    <div class="stat-label">Total Placed</div>
+  </div>
+</div>
+
+{% if not departments or not companies %}
+<div class="card fade-up" style="text-align:center;padding:80px 40px;">
+  <div style="font-size:3.5rem;margin-bottom:16px;opacity:.3;">🗺️</div>
+  <div style="font-size:1rem;font-weight:700;color:var(--muted);margin-bottom:6px;">Heatmap needs more data</div>
+  <div style="font-size:.82rem;color:var(--muted);">Appears once students with departments have applied to company drives.</div>
+</div>
+
+{% else %}
+<div class="card fade-up" style="overflow:hidden;padding:0;">
+
+  {# ─── Header: title + toggle ─── #}
+  <div style="padding:20px 24px;display:flex;align-items:center;justify-content:space-between;
+              flex-wrap:wrap;gap:14px;border-bottom:1px solid var(--border);">
+    <div>
+      <div style="font-size:1rem;font-weight:800;margin-bottom:3px;">Department × Company Matrix</div>
+      <div style="font-size:.75rem;color:var(--muted);">Hover any cell for details  ·  switch modes below</div>
+    </div>
+
+    {# Mode pill toggle #}
+    <div style="display:flex;background:var(--surface2);border:1px solid var(--border);
+                border-radius:12px;padding:4px;gap:4px;">
+      <button id="btnApps" onclick="setMode('apps')"
+              style="padding:7px 18px;border-radius:8px;border:none;font-size:.8rem;font-weight:700;
+                     cursor:pointer;transition:all .25s;background:var(--accent);color:#fff;">
+        <i class="bi bi-send-fill me-1"></i>Applications
+      </button>
+      <button id="btnPlaced" onclick="setMode('placed')"
+              style="padding:7px 18px;border-radius:8px;border:none;font-size:.8rem;font-weight:700;
+                     cursor:pointer;transition:all .25s;background:transparent;color:var(--muted);">
+        <i class="bi bi-patch-check-fill me-1"></i>Placements Only
+      </button>
+    </div>
+  </div>
+
+  {# ─── Legend ─── #}
+  <div style="padding:12px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);">
+    <span style="font-size:.7rem;color:var(--muted);font-weight:600;white-space:nowrap;">None</span>
+    <div id="legend" style="display:flex;gap:3px;flex:1;max-width:200px;">
+      {% for i in range(9) %}
+      <div class="leg-box" style="flex:1;height:16px;border-radius:4px;"></div>
+      {% endfor %}
+    </div>
+    <span style="font-size:.7rem;color:var(--muted);font-weight:600;white-space:nowrap;">Max</span>
+    <span id="legendMax" style="font-size:.7rem;font-weight:800;font-family:'JetBrains Mono',monospace;
+                                color:var(--accent);margin-left:4px;">
+      {{ max_apps }}
+    </span>
+  </div>
+
+  {# ─── Heatmap Table ─── #}
+  <div style="overflow-x:auto;">
+    <table style="border-collapse:separate;border-spacing:3px;min-width:max-content;
+                  padding:16px 20px;table-layout:fixed;">
+
+      {# Column headers (rotated) #}
+      <thead>
+        <tr>
+          <th style="width:130px;min-width:130px;position:sticky;left:0;background:var(--surface);
+                     z-index:3;"></th>
+          {% for company in companies %}
+          <th style="width:46px;min-width:46px;height:90px;vertical-align:bottom;
+                     padding:0 0 6px 0;text-align:center;">
+            <div style="writing-mode:vertical-rl;transform:rotate(180deg);
+                        font-size:.68rem;font-weight:700;color:var(--muted2);
+                        white-space:nowrap;max-height:84px;overflow:hidden;
+                        text-overflow:ellipsis;line-height:1.2;" title="{{ company }}">
+              {{ company[:22] }}{% if company|length > 22 %}…{% endif %}
+            </div>
+          </th>
+          {% endfor %}
+          <th style="width:58px;min-width:58px;vertical-align:bottom;padding:0 0 6px 8px;
+                     font-size:.68rem;font-weight:700;color:var(--muted);text-align:center;">
+            Total
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+      {% for dept in departments %}
+      <tr>
+        {# Sticky department label #}
+        <td style="position:sticky;left:0;background:var(--surface);z-index:2;
+                   padding:4px 14px 4px 4px;white-space:nowrap;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;"></div>
+            <span style="font-size:.82rem;font-weight:700;color:var(--text);">{{ dept }}</span>
+          </div>
+        </td>
+
+        {# Heat cells #}
+        {% for company in companies %}
+        {% set n_apps   = apps_matrix[dept][company] %}
+        {% set n_placed = placed_matrix[dept][company] %}
+        {% set pct_apps   = (n_apps   / max_apps   * 100) | round | int %}
+        {% set pct_placed = (n_placed / max_placed * 100) | round | int if max_placed > 0 else 0 %}
+        <td class="heatcell"
+            data-apps="{{ n_apps }}" data-placed="{{ n_placed }}"
+            data-dept="{{ dept }}"  data-company="{{ company }}"
+            data-pct-apps="{{ pct_apps }}" data-pct-placed="{{ pct_placed }}"
+            onmouseover="showTip(this,event)" onmouseout="hideTip()"
+            style="width:46px;height:46px;border-radius:9px;text-align:center;
+                   vertical-align:middle;cursor:default;position:relative;
+                   transition:transform .12s,box-shadow .12s;">
+          <span class="vApps"   style="font-size:.72rem;font-weight:800;display:block;">
+            {% if n_apps > 0 %}{{ n_apps }}{% else %}<span style="opacity:.15;font-size:.55rem;">·</span>{% endif %}
+          </span>
+          <span class="vPlaced" style="font-size:.72rem;font-weight:800;display:none;">
+            {% if n_placed > 0 %}{{ n_placed }}{% else %}<span style="opacity:.15;font-size:.55rem;">·</span>{% endif %}
+          </span>
+        </td>
+        {% endfor %}
+
+        {# Row totals #}
+        <td style="text-align:center;padding:4px 8px;">
+          <div class="rApps"   style="font-size:.8rem;font-weight:800;
+               color:#818cf8;font-family:'JetBrains Mono',monospace;">{{ dept_totals[dept] }}</div>
+          <div class="rPlaced" style="font-size:.8rem;font-weight:800;display:none;
+               color:#4ade80;font-family:'JetBrains Mono',monospace;">{{ dept_placed[dept] }}</div>
+        </td>
+      </tr>
+      {% endfor %}
+
+      {# Column totals row #}
+      <tr>
+        <td style="position:sticky;left:0;background:var(--surface);z-index:2;
+                   padding:6px 14px 4px 4px;font-size:.68rem;font-weight:700;
+                   color:var(--muted);white-space:nowrap;">
+          ── Total
+        </td>
+        {% for company in companies %}
+        <td style="text-align:center;padding:3px;">
+          <span class="cApps"   style="font-size:.7rem;font-weight:700;
+               color:#818cf8;font-family:'JetBrains Mono',monospace;">{{ col_totals_apps[company] }}</span>
+          <span class="cPlaced" style="display:none;font-size:.7rem;font-weight:700;
+               color:#4ade80;font-family:'JetBrains Mono',monospace;">{{ col_totals_placed[company] }}</span>
+        </td>
+        {% endfor %}
+        <td></td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ─── Department bar chart ─── #}
+<div class="card fade-up" style="margin-top:16px;">
+  <div class="card-header">
+    <i class="bi bi-bar-chart-steps me-1" style="color:var(--accent);"></i>
+    Department Summary
+  </div>
+  <div class="card-body" style="padding:20px 26px;">
+    {% set max_t = dept_totals.values()|max if dept_totals else 1 %}
+    {% for dept in departments %}
+    {% set apps_w   = (dept_totals.get(dept,0) / max_t * 100)|round|int %}
+    {% set placed_w = (dept_placed.get(dept,0) / max_t * 100)|round|int %}
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+        <span style="font-size:.82rem;font-weight:700;color:var(--text);">{{ dept }}</span>
+        <div style="font-size:.72rem;font-family:'JetBrains Mono',monospace;display:flex;gap:12px;">
+          <span style="color:#818cf8;"><i class="bi bi-send-fill"></i> {{ dept_totals.get(dept,0) }}</span>
+          <span style="color:#4ade80;"><i class="bi bi-patch-check-fill"></i> {{ dept_placed.get(dept,0) }}</span>
+          {% if dept_totals.get(dept,0) > 0 %}
+          <span style="color:#fbbf24;">
+            {{ ((dept_placed.get(dept,0) / dept_totals.get(dept,1)) * 100)|round|int }}% placed
+          </span>
+          {% endif %}
+        </div>
+      </div>
+      <div style="height:10px;background:var(--surface2);border-radius:99px;overflow:hidden;position:relative;">
+        <div style="position:absolute;inset:0;width:{{ apps_w }}%;
+                    background:rgba(99,102,241,.28);border-radius:99px;"></div>
+        <div style="position:absolute;inset:0;width:{{ placed_w }}%;
+                    background:linear-gradient(90deg,#22c55e,#4ade80);border-radius:99px;"></div>
+      </div>
+    </div>
+    {% endfor %}
+    <div style="display:flex;gap:20px;margin-top:16px;padding-top:14px;
+                border-top:1px solid var(--border);font-size:.72rem;color:var(--muted);">
+      <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;
+                         background:rgba(99,102,241,.28);margin-right:5px;vertical-align:middle;"></span>Applications</span>
+      <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;
+                         background:#4ade80;margin-right:5px;vertical-align:middle;"></span>Placements</span>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ─── Tooltip ─── #}
+<div id="heatTip" style="display:none;position:fixed;z-index:9999;pointer-events:none;
+     background:rgba(10,14,26,.96);border:1px solid rgba(99,102,241,.3);border-radius:12px;
+     padding:12px 16px;min-width:170px;box-shadow:0 12px 32px rgba(0,0,0,.5);backdrop-filter:blur(8px);">
+  <div id="tipDept"    style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+                               color:var(--muted);margin-bottom:2px;"></div>
+  <div id="tipCompany" style="font-size:.88rem;font-weight:800;color:var(--text);margin-bottom:10px;
+                               border-bottom:1px solid rgba(99,102,241,.2);padding-bottom:8px;"></div>
+  <div style="display:flex;flex-direction:column;gap:5px;">
+    <div style="display:flex;justify-content:space-between;gap:24px;align-items:center;">
+      <span style="font-size:.75rem;color:var(--muted);">Applications</span>
+      <span id="tipApps"   style="font-family:'JetBrains Mono',monospace;font-size:.85rem;
+                                   font-weight:800;color:#818cf8;"></span>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:24px;align-items:center;">
+      <span style="font-size:.75rem;color:var(--muted);">Placed</span>
+      <span id="tipPlaced" style="font-family:'JetBrains Mono',monospace;font-size:.85rem;
+                                   font-weight:800;color:#4ade80;"></span>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:24px;align-items:center;
+                margin-top:4px;padding-top:6px;border-top:1px solid rgba(99,102,241,.15);">
+      <span style="font-size:.75rem;color:var(--muted);">Placement rate</span>
+      <span id="tipRate"   style="font-family:'JetBrains Mono',monospace;font-size:.85rem;
+                                   font-weight:800;color:#fbbf24;"></span>
+    </div>
+  </div>
+</div>
+
+<style>
+.heatcell:hover { transform: scale(1.18); z-index:10; box-shadow:0 6px 24px rgba(0,0,0,.45); }
+</style>
+
+<script>
+/* ── colour helpers ── */
+function cellColor(pct, mode) {
+  if (pct === 0) return 'rgba(255,255,255,0.03)';
+  const t = pct / 100;
+  if (mode === 'apps') {
+    // indigo → violet gradient
+    const r = Math.round(99  + (167 - 99)  * t);
+    const g = Math.round(102 + (139 - 102) * t);
+    const b = Math.round(241 + (246 - 241) * t);
+    const a = (0.12 + t * 0.78).toFixed(2);
+    return `rgba(${r},${g},${b},${a})`;
+  } else {
+    // emerald gradient
+    const a = (0.12 + t * 0.78).toFixed(2);
+    return `rgba(34,197,94,${a})`;
+  }
+}
+
+function textColor(pct, mode) {
+  if (pct === 0) return 'var(--border)';
+  if (pct > 55)  return '#fff';
+  return mode === 'apps' ? '#a5b4fc' : '#86efac';
+}
+
+function applyColors(mode) {
+  document.querySelectorAll('.heatcell').forEach(c => {
+    const pct = parseInt(mode === 'apps' ? c.dataset.pctApps : c.dataset.pctPlaced);
+    c.style.background = cellColor(pct, mode);
+    const val = mode === 'apps' ? c.dataset.apps : c.dataset.placed;
+    const span = c.querySelector(mode === 'apps' ? '.vApps' : '.vPlaced');
+    if (span) span.style.color = textColor(pct, mode);
+  });
+}
+
+function applyLegend(mode) {
+  const boxes = document.querySelectorAll('.leg-box');
+  boxes.forEach((b, i) => {
+    b.style.background = cellColor(Math.round((i + 1) / boxes.length * 100), mode);
+  });
+  document.getElementById('legendMax').textContent =
+    mode === 'apps' ? '{{ max_apps }}' : '{{ max_placed }}';
+  document.getElementById('legendMax').style.color = mode === 'apps' ? '#818cf8' : '#4ade80';
+}
+
+let _mode = 'apps';
+
+function setMode(mode) {
+  _mode = mode;
+  const bA = document.getElementById('btnApps');
+  const bP = document.getElementById('btnPlaced');
+
+  if (mode === 'apps') {
+    bA.style.background = 'var(--accent)'; bA.style.color = '#fff';
+    bP.style.background = 'transparent';   bP.style.color = 'var(--muted)';
+  } else {
+    bP.style.background = '#22c55e'; bP.style.color = '#fff';
+    bA.style.background = 'transparent'; bA.style.color = 'var(--muted)';
+  }
+
+  // Toggle value spans
+  document.querySelectorAll('.vApps').forEach(e  => e.style.display = mode === 'apps'   ? 'block' : 'none');
+  document.querySelectorAll('.vPlaced').forEach(e => e.style.display = mode === 'placed' ? 'block' : 'none');
+  document.querySelectorAll('.rApps,.cApps').forEach(e   => e.style.display = mode === 'apps'   ? '' : 'none');
+  document.querySelectorAll('.rPlaced,.cPlaced').forEach(e => e.style.display = mode === 'placed' ? '' : 'none');
+
+  applyColors(mode);
+  applyLegend(mode);
+}
+
+/* ── Tooltip ── */
+function showTip(cell, e) {
+  const a = parseInt(cell.dataset.apps), p = parseInt(cell.dataset.placed);
+  document.getElementById('tipDept').textContent    = cell.dataset.dept;
+  document.getElementById('tipCompany').textContent = cell.dataset.company;
+  document.getElementById('tipApps').textContent    = a;
+  document.getElementById('tipPlaced').textContent  = p;
+  document.getElementById('tipRate').textContent    = a > 0 ? Math.round(p/a*100)+'%' : '—';
+  const tip = document.getElementById('heatTip');
+  tip.style.display = 'block';
+  moveTip(e);
+}
+function hideTip() { document.getElementById('heatTip').style.display = 'none'; }
+function moveTip(e) {
+  const tip = document.getElementById('heatTip');
+  const x = e.clientX + 16, y = e.clientY - 10;
+  tip.style.left = (x + tip.offsetWidth  > window.innerWidth  ? x - tip.offsetWidth  - 32 : x) + 'px';
+  tip.style.top  = (y + tip.offsetHeight > window.innerHeight ? y - tip.offsetHeight      : y) + 'px';
+}
+document.addEventListener('mousemove', e => {
+  if (document.getElementById('heatTip').style.display !== 'none') moveTip(e);
+});
+
+/* ── Init ── */
+applyColors('apps');
+applyLegend('apps');
+</script>
+{% endblock %}

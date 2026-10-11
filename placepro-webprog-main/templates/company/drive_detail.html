@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}{{ drive.job_title }} — PlacePro{% endblock %}
+{% block page_title %}Drive Details{% endblock %}
+{% block content %}
+
+<div style="max-width:700px;" class="fade-up">
+  <a href="{{ url_for('company_dashboard') }}" class="btn btn-secondary btn-sm" style="margin-bottom:20px;">
+    <i class="bi bi-arrow-left"></i> Back to Dashboard
+  </a>
+
+  <div class="card" style="border-top:3px solid var(--amber);">
+    <div class="card-body" style="padding:28px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+        <div>
+          <h1 style="font-size:1.4rem;font-weight:800;margin-bottom:8px;">{{ drive.job_title }}</h1>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <span class="badge badge-{{ drive.status | lower }}">{{ drive.status }}</span>
+            <span style="font-size:0.8rem;color:var(--muted);">{{ drive.company.company_name }}</span>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          {% if drive.salary_range %}
+          <div style="font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;color:var(--amber);">
+            {{ drive.salary_range }}
+          </div>
+          {% endif %}
+          <div style="font-size:0.78rem;color:var(--muted);margin-top:4px;">
+            <i class="bi bi-people"></i>
+            <strong style="color:var(--accent);">{{ drive.applications|length }}</strong> applicant(s)
+          </div>
+        </div>
+      </div>
+
+      {% if drive.deadline %}
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;color:var(--amber);margin-bottom:20px;">
+        <i class="bi bi-calendar3"></i>
+        Deadline: <strong>{{ drive.deadline.strftime('%d %b %Y') }}</strong>
+      </div>
+      {% endif %}
+
+      {% if drive.job_description %}
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px;">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;
+                    color:var(--muted);margin-bottom:8px;"><i class="bi bi-file-text me-1"></i>Job Description</div>
+        <p style="font-size:0.875rem;color:var(--text);line-height:1.7;margin:0;">{{ drive.job_description }}</p>
+      </div>
+      {% endif %}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        {% if drive.required_skills %}
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;
+                      color:var(--muted);margin-bottom:10px;"><i class="bi bi-code-slash me-1"></i>Required Skills</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            {% for skill in drive.required_skills.split(',') %}
+            <span style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);
+                         border-radius:6px;padding:4px 10px;font-size:0.78rem;font-weight:600;color:#818cf8;">
+              {{ skill.strip() }}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        {% if drive.eligibility_criteria %}
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;
+                      color:var(--muted);margin-bottom:8px;"><i class="bi bi-clipboard-check me-1"></i>Eligibility</div>
+          <p style="font-size:0.875rem;color:var(--text);margin:0;">{{ drive.eligibility_criteria }}</p>
+        </div>
+        {% endif %}
+
+        {% if drive.experience_required %}
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;grid-column:1/-1;">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;
+                      color:var(--muted);margin-bottom:8px;"><i class="bi bi-briefcase me-1"></i>Experience Required</div>
+          <p style="font-size:0.875rem;color:var(--text);margin:0;">{{ drive.experience_required }}</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <div style="margin-top:22px;padding-top:20px;border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="{{ url_for('view_applicants', id=drive.id) }}" class="btn btn-primary">
+          <i class="bi bi-people-fill"></i> View Applicants ({{ drive.applications|length }})
+        </a>
+        {% if drive.status == 'Pending' %}
+        <a href="{{ url_for('edit_drive', id=drive.id) }}" class="btn btn-outline-secondary">
+          <i class="bi bi-pencil"></i> Edit Drive
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

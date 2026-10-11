@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Student Leaderboard — PlacePro{% endblock %}
+{% block page_title %}Student Leaderboard{% endblock %}
+{% block content %}
+
+<div class="card fade-up">
+  <div class="card-header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <i class="bi bi-trophy-fill" style="color:#fbbf24;"></i>
+      Student Rankings
+      <span class="badge badge-info">{{ students|length }}</span>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:48px;">#</th>
+          <th>Student</th>
+          <th>Department</th>
+          <th>CGPA</th>
+          <th>Skills</th>
+          <th>Profile</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for student in students %}
+      {% set is_placed = student.applications | selectattr('status','in',['Selected','Placed']) | list | length > 0 %}
+      {% set skill_count = student.skills.split(',')|length if student.skills else 0 %}
+      {% set completeness = compute_profile_completeness(student) %}
+      <tr style="{% if loop.index <= 3 %}background:rgba(251,191,36,0.03);{% endif %}">
+
+        {# Rank #}
+        <td style="text-align:center;">
+          {% if loop.index == 1 %}
+          <span style="font-size:1.2rem;">🥇</span>
+          {% elif loop.index == 2 %}
+          <span style="font-size:1.2rem;">🥈</span>
+          {% elif loop.index == 3 %}
+          <span style="font-size:1.2rem;">🥉</span>
+          {% else %}
+          <span style="font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--muted);">{{ loop.index }}</span>
+          {% endif %}
+        </td>
+
+        {# Student #}
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:9px;flex-shrink:0;
+                        background:{% if is_placed %}rgba(34,197,94,0.15){% else %}rgba(99,102,241,0.12){% endif %};
+                        display:grid;place-items:center;font-size:0.82rem;
+                        color:{% if is_placed %}#4ade80{% else %}var(--accent){% endif %};font-weight:700;">
+              {{ student.full_name[0].upper() if student.full_name else '?' }}
+            </div>
+            <div>
+              <div style="font-weight:600;font-size:0.875rem;">{{ student.full_name or student.user.username }}</div>
+              <div style="font-size:0.72rem;color:var(--muted);">{{ student.user.email }}</div>
+            </div>
+          </div>
+        </td>
+
+        {# Department #}
+        <td>
+          <span style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;
+                       padding:3px 9px;font-size:0.72rem;font-weight:600;color:var(--muted2);">
+            {{ student.department or '—' }}
+          </span>
+        </td>
+
+        {# CGPA #}
+        <td>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:0.92rem;font-weight:700;
+                       color:{% if student.cgpa and student.cgpa >= 8 %}#4ade80{% elif student.cgpa and student.cgpa >= 6 %}#fbbf24{% else %}var(--muted){% endif %};">
+            {{ student.cgpa or '—' }}
+          </span>
+        </td>
+
+        {# Skills count #}
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:0.82rem;font-weight:700;color:var(--accent);">{{ skill_count }}</span>
+            <div style="width:40px;height:4px;background:var(--surface2);border-radius:99px;overflow:hidden;">
+              <div style="height:100%;width:{{ [skill_count * 7, 100] | min }}%;background:var(--grad);border-radius:99px;"></div>
+            </div>
+          </div>
+        </td>
+
+        {# Profile completeness #}
+        <td>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:0.78rem;font-weight:700;
+                         color:{% if completeness >= 80 %}#4ade80{% elif completeness >= 50 %}#fbbf24{% else %}#f87171{% endif %};">
+              {{ completeness }}%
+            </span>
+            <div style="width:40px;height:4px;background:var(--surface2);border-radius:99px;overflow:hidden;">
+              <div style="height:100%;width:{{ completeness }}%;
+                           background:{% if completeness >= 80 %}#4ade80{% elif completeness >= 50 %}#fbbf24{% else %}#f87171{% endif %};
+                           border-radius:99px;"></div>
+            </div>
+          </div>
+        </td>
+
+        {# Placement Status #}
+        <td>
+          {% if is_placed %}
+          <span class="badge badge-approved"><i class="bi bi-patch-check-fill"></i> Placed</span>
+          {% elif student.applications %}
+          <span class="badge badge-pending">Applied</span>
+          {% else %}
+          <span style="font-size:0.72rem;color:var(--muted);">No applications</span>
+          {% endif %}
+        </td>
+
+        {# Actions #}
+        <td>
+          <a href="{{ url_for('admin_view_student', id=student.id) }}" class="btn btn-outline-primary btn-xs">
+            <i class="bi bi-eye"></i> View
+          </a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="8" style="text-align:center;padding:48px;color:var(--muted);">
+          <i class="bi bi-people" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:0.4;"></i>
+          No students registered yet.
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

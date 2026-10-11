@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Post Drive — PlacePro{% endblock %}
+{% block page_title %}Post New Drive{% endblock %}
+{% block content %}
+
+<div style="max-width:640px;" class="fade-up">
+  <div class="card">
+    <div class="card-header">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <i class="bi bi-plus-circle-fill" style="color:var(--accent);"></i>
+        New Placement Drive
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-info" style="margin-bottom:20px;font-size:0.82rem;">
+        <i class="bi bi-shield-check-fill"></i>
+        <div>Your drive will be reviewed by an admin before it becomes visible to students.</div>
+      </div>
+
+      <form method="POST">
+        <div style="display:grid;grid-template-columns:1fr;gap:16px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Job Title <span style="color:#f87171;">*</span></label>
+            <input type="text" name="job_title" class="form-control" placeholder="e.g. Software Engineer" required>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Job Description</label>
+            <textarea name="job_description" class="form-control" rows="4"
+                      placeholder="Describe the role, responsibilities and what you are looking for..."></textarea>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Salary Range</label>
+              <input type="text" name="salary_range" class="form-control" placeholder="e.g. 6-10 LPA">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Application Deadline</label>
+              <input type="date" name="deadline" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Required Skills <span style="color:var(--muted);font-weight:400;">(comma separated)</span></label>
+            <input type="text" name="required_skills" class="form-control" placeholder="Python, Flask, SQL, REST APIs">
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Eligibility Criteria</label>
+              <input type="text" name="eligibility_criteria" class="form-control" placeholder="CGPA ≥ 7.0, No backlogs">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Experience Required</label>
+              <input type="text" name="experience_required" class="form-control" placeholder="Freshers / 0-1 years">
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:4px;">
+            <button type="submit" class="btn btn-primary" style="flex:1;padding:12px;font-size:0.95rem;">
+              <i class="bi bi-send-fill"></i> Submit for Approval
+            </button>
+            <a href="{{ url_for('company_dashboard') }}" class="btn btn-secondary" style="padding:12px 20px;">
+              Cancel
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

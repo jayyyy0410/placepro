@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Companies — PlacePro{% endblock %}
+{% block page_title %}Companies{% endblock %}
+{% block content %}
+
+<div class="card fade-up">
+  <div class="card-header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <i class="bi bi-building-fill" style="color:var(--accent);"></i>
+      <span>All Companies</span>
+      <span class="badge badge-info" style="margin-left:4px;">{{ companies|length }}</span>
+    </div>
+    <form class="d-flex gap-2" method="GET" style="margin:0;">
+      <input type="text" name="search" class="form-control" style="width:220px;padding:7px 12px;font-size:0.82rem;"
+        placeholder="Search company, industry..." value="{{ search }}">
+      <button class="btn btn-primary btn-sm"><i class="bi bi-search"></i></button>
+      {% if search %}
+      <a href="{{ url_for('admin_companies') }}" class="btn btn-secondary btn-sm"><i class="bi bi-x"></i></a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Industry</th>
+          <th>HR Contact</th>
+          <th>Approval</th>
+          <th>Blacklist</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in companies %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:34px;height:34px;border-radius:9px;background:rgba(99,102,241,0.12);
+                        display:grid;place-items:center;font-size:0.85rem;color:var(--accent);flex-shrink:0;">
+                {{ c.company_name[0].upper() }}
+              </div>
+              <div>
+                <div style="font-weight:600;font-size:0.875rem;">{{ c.company_name }}</div>
+                <div style="font-size:0.72rem;color:var(--muted);">{{ c.user.email }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="color:var(--muted2);font-size:0.82rem;">{{ c.industry or '—' }}</td>
+          <td style="color:var(--muted2);font-size:0.82rem;font-family:'JetBrains Mono',monospace;">{{ c.hr_contact or
+            '—' }}</td>
+          <td>
+            <span class="badge badge-{{ c.approval_status | lower }}">
+              {% if c.approval_status == 'Approved' %}<i class="bi bi-check-circle-fill"></i>{% endif %}
+              {{ c.approval_status }}
+            </span>
+          </td>
+          <td>
+            {% if c.is_blacklisted %}
+            <span class="badge badge-blacklisted"><i class="bi bi-slash-circle-fill"></i> Blacklisted</span>
+            {% else %}
+            <span class="badge badge-active"><i class="bi bi-circle-fill" style="font-size:0.5em;"></i> Active</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              {% if c.approval_status == 'Pending' %}
+              <a href="{{ url_for('approve_company', id=c.id) }}" class="btn btn-success btn-xs">
+                <i class="bi bi-check-lg"></i> Approve
+              </a>
+              <a href="{{ url_for('reject_company', id=c.id) }}" class="btn btn-danger btn-xs">
+                <i class="bi bi-x-lg"></i> Reject
+              </a>
+              {% endif %}
+              {% if c.is_blacklisted %}
+              <a href="{{ url_for('unblacklist_company', id=c.id) }}" class="btn btn-outline-success btn-xs">
+                <i class="bi bi-arrow-counterclockwise"></i> Unblacklist
+              </a>
+              {% else %}
+              <a href="{{ url_for('blacklist_company', id=c.id) }}" class="btn btn-outline-danger btn-xs"
+                onclick="return confirm('Blacklist this company?')">
+                <i class="bi bi-slash-circle"></i> Blacklist
+              </a>
+              {% endif %}
+              <a href="{{ url_for('admin_view_company', id=c.id) }}" class="btn btn-outline-secondary btn-xs">
+                <i class="bi bi-eye"></i> Profile
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center;padding:48px;color:var(--muted);">
+            <i class="bi bi-building" style="font-size:2rem;display:block;margin-bottom:10px;"></i>
+            No companies found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

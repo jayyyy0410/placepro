@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Edit Drive — PlacePro{% endblock %}
+{% block page_title %}Edit Drive{% endblock %}
+{% block content %}
+
+<div style="max-width:640px;" class="fade-up">
+  <div class="card">
+    <div class="card-header">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <i class="bi bi-pencil-fill" style="color:var(--amber);"></i>
+        Edit: {{ drive.job_title }}
+      </div>
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        <div style="display:grid;grid-template-columns:1fr;gap:16px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Job Title <span style="color:#f87171;">*</span></label>
+            <input type="text" name="job_title" class="form-control" value="{{ drive.job_title }}" required>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Job Description</label>
+            <textarea name="job_description" class="form-control" rows="4">{{ drive.job_description }}</textarea>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Salary Range</label>
+              <input type="text" name="salary_range" class="form-control" value="{{ drive.salary_range }}">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Application Deadline</label>
+              <input type="date" name="deadline" class="form-control"
+                     value="{{ drive.deadline.strftime('%Y-%m-%d') if drive.deadline else '' }}">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">Required Skills</label>
+            <input type="text" name="required_skills" class="form-control" value="{{ drive.required_skills }}">
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Eligibility Criteria</label>
+              <input type="text" name="eligibility_criteria" class="form-control" value="{{ drive.eligibility_criteria }}">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">Experience Required</label>
+              <input type="text" name="experience_required" class="form-control" value="{{ drive.experience_required }}">
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:4px;">
+            <button type="submit" class="btn btn-primary" style="flex:1;padding:12px;font-size:0.95rem;">
+              <i class="bi bi-check-circle-fill"></i> Save Changes
+            </button>
+            <a href="{{ url_for('company_dashboard') }}" class="btn btn-secondary" style="padding:12px 20px;">
+              Cancel
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

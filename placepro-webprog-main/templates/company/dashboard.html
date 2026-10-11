@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}My Drives — PlacePro{% endblock %}
+{% block page_title %}My Drives{% endblock %}
+{% block content %}
+
+<!-- ─── PENDING WARNING ─── -->
+{% if company.approval_status != 'Approved' %}
+<div class="alert alert-warning fade-up" style="margin-bottom:24px;">
+  <i class="bi bi-hourglass-split" style="font-size:1.1rem;flex-shrink:0;"></i>
+  <div>
+    Your company account is currently <strong style="color:#fbbf24;">{{ company.approval_status }}</strong>.
+    You cannot post placement drives until an admin approves your account.
+  </div>
+</div>
+{% else %}
+<!-- ─── ACTION BAR ─── -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;" class="fade-up">
+  <div>
+    <h2 style="font-size:1rem;font-weight:700;margin-bottom:2px;">Posted Drives</h2>
+    <p style="font-size:0.78rem;color:var(--muted);">Manage your placement drive listings</p>
+  </div>
+  <a href="{{ url_for('create_drive') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle-fill"></i> Post New Drive
+  </a>
+</div>
+{% endif %}
+
+<!-- ─── DRIVES TABLE ─── -->
+<div class="card fade-up">
+  <div class="card-header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <i class="bi bi-calendar-event-fill" style="color:var(--amber);"></i>
+      All Posted Drives
+      <span class="badge badge-info">{{ drives|length }}</span>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Job Title</th>
+          <th>Salary</th>
+          <th>Deadline</th>
+          <th>Status</th>
+          <th>Applicants</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for drive in drives %}
+        <tr>
+          <td style="font-weight:600;font-size:0.875rem;">{{ drive.job_title }}</td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--amber);">
+            {{ drive.salary_range or '—' }}
+          </td>
+          <td style="font-size:0.82rem;color:var(--muted2);">
+            {% if drive.deadline %}
+            <span style="display:flex;align-items:center;gap:5px;">
+              <i class="bi bi-calendar3" style="font-size:0.75rem;"></i>
+              {{ drive.deadline.strftime('%d %b %Y') }}
+            </span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            <span class="badge badge-{{ drive.status | lower }}">
+              {% if drive.status == 'Approved' %}<i class="bi bi-check-circle-fill"></i>
+              {% elif drive.status == 'Pending' %}<i class="bi bi-clock-fill"></i>
+              {% elif drive.status == 'Rejected' %}<i class="bi bi-x-circle-fill"></i>
+              {% elif drive.status == 'Closed' %}<i class="bi bi-lock-fill"></i>{% endif %}
+              {{ drive.status }}
+            </span>
+          </td>
+          <td>
+            <span style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);
+                       border-radius:6px;padding:3px 10px;font-size:0.78rem;font-weight:700;color:#818cf8;">
+              {{ drive.applications | length }}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <a href="{{ url_for('view_applicants', id=drive.id) }}" class="btn btn-outline-primary btn-xs">
+                <i class="bi bi-people"></i> Applicants
+              </a>
+              {% if drive.status == 'Pending' %}
+              <a href="{{ url_for('edit_drive', id=drive.id) }}" class="btn btn-outline-secondary btn-xs">
+                <i class="bi bi-pencil"></i> Edit
+              </a>
+              {% endif %}
+              {% if drive.status != 'Closed' %}
+              <a href="{{ url_for('close_drive', id=drive.id) }}" class="btn btn-outline-warning btn-xs">
+                <i class="bi bi-lock"></i> Close
+              </a>
+              {% endif %}
+              <a href="{{ url_for('delete_drive', id=drive.id) }}" class="btn btn-outline-danger btn-xs"
+                onclick="return confirm('Delete this drive?')">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center;padding:56px;color:var(--muted);">
+            <i class="bi bi-calendar-x" style="font-size:2.5rem;display:block;margin-bottom:12px;opacity:0.5;"></i>
+            <div style="font-weight:600;margin-bottom:6px;">No drives posted yet</div>
+            {% if company.approval_status == 'Approved' %}
+            <a href="{{ url_for('create_drive') }}" class="btn btn-primary btn-sm" style="margin-top:8px;">
+              <i class="bi bi-plus-circle-fill"></i> Post Your First Drive
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

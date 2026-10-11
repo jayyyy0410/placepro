@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: placepro
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    disk:
+      name: placepro-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_PATH
+        value: /data/placement.db
+      - key: UPLOAD_FOLDER
+        value: /data/uploads

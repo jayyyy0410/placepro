@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% block title %}{{ drive.job_title }} — PlacePro{% endblock %}
+{% block page_title %}Drive Details{% endblock %}
+{% block content %}
+
+<div style="max-width:720px;">
+  <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary btn-sm fade-up" style="margin-bottom:20px;">
+    <i class="bi bi-arrow-left"></i> Back to Drives
+  </a>
+
+  {# ─── Match Score Card ─── #}
+  <div class="card fade-up" style="margin-bottom:14px;border:1px solid {{ score_color }}44;">
+    <div class="card-body" style="padding:20px 24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);">
+          <i class="bi bi-stars" style="color:#fbbf24;"></i> AI Match Analysis
+        </div>
+        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+          {# Big score circle #}
+          <div style="position:relative;width:72px;height:72px;flex-shrink:0;">
+            <svg viewBox="0 0 72 72" style="width:72px;height:72px;transform:rotate(-90deg);">
+              <circle cx="36" cy="36" r="30" fill="none" stroke="var(--surface2)" stroke-width="6"/>
+              <circle cx="36" cy="36" r="30" fill="none" stroke="{{ score_color }}" stroke-width="6"
+                      stroke-dasharray="{{ (score / 100 * 188.4)|round(1) }} 188.4"
+                      stroke-linecap="round"/>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <span style="font-size:1.1rem;font-weight:800;color:{{ score_color }};line-height:1;">{{ score }}</span>
+              <span style="font-size:0.55rem;color:var(--muted);font-weight:600;">/ 100</span>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:1rem;font-weight:800;color:{{ score_color }};margin-bottom:4px;">{{ score_label }}</div>
+            <div style="display:flex;flex-direction:column;gap:3px;">
+              {% for label, key, max_pts in [('Skills', 'skills', 60), ('CGPA', 'cgpa', 30), ('Profile', 'profile', 10)] %}
+              <div style="display:flex;align-items:center;gap:8px;font-size:0.72rem;color:var(--muted);">
+                <span style="width:44px;">{{ label }}</span>
+                <div style="width:80px;height:4px;background:var(--surface2);border-radius:99px;overflow:hidden;">
+                  <div style="height:100%;width:{{ (breakdown[key] / max_pts * 100)|round }}%;
+                              background:{{ score_color }};border-radius:99px;"></div>
+                </div>
+                <span style="font-family:'JetBrains Mono',monospace;">{{ breakdown[key] }}/{{ max_pts }}</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ─── Drive Hero ─── #}
+  <div class="card fade-up" style="margin-bottom:14px;border-top:3px solid var(--accent);">
+    <div class="card-body" style="padding:28px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:12px;flex-wrap:wrap;">
+        <div>
+          <h1 style="font-size:1.4rem;font-weight:800;margin-bottom:6px;">{{ drive.job_title }}</h1>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span style="font-size:0.82rem;color:var(--muted);display:flex;align-items:center;gap:5px;">
+              <i class="bi bi-building"></i> {{ drive.company.company_name }}
+            </span>
+            {% if drive.company.industry %}
+            <span style="font-size:0.75rem;color:var(--muted);">· {{ drive.company.industry }}</span>
+            {% endif %}
+          </div>
+        </div>
+        {% if drive.salary_range %}
+        <span style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);
+                     border-radius:8px;padding:6px 14px;font-size:0.82rem;font-weight:700;
+                     color:#4ade80;font-family:'JetBrains Mono',monospace;white-space:nowrap;">
+          {{ drive.salary_range }}
+        </span>
+        {% endif %}
+      </div>
+
+      {% if drive.deadline %}
+      {% set dl = days_until(drive.deadline) if days_until is defined else none %}
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.8rem;margin-bottom:20px;
+                  color:{% if dl is not none and dl <= 2 %}#f87171{% else %}var(--amber){% endif %};">
+        <i class="bi bi-calendar3"></i>
+        Deadline: <strong>{{ drive.deadline.strftime('%d %b %Y') }}</strong>
+        {% if dl is not none %}
+        <span style="font-size:0.72rem;opacity:0.8;">({{ 'Today!' if dl == 0 else (dl|string + ' days left') }})</span>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if drive.job_description %}
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px;">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">
+          <i class="bi bi-file-text me-1"></i>Job Description
+        </div>
+        <p style="font-size:0.875rem;color:var(--text);line-height:1.7;margin:0;">{{ drive.job_description }}</p>
+      </div>
+      {% endif %}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+        {% if drive.eligibility_criteria %}
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">
+            <i class="bi bi-clipboard-check me-1"></i>Eligibility
+          </div>
+          <p style="font-size:0.875rem;color:var(--text);margin:0;">{{ drive.eligibility_criteria }}</p>
+        </div>
+        {% endif %}
+        {% if drive.experience_required %}
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;">
+          <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">
+            <i class="bi bi-briefcase me-1"></i>Experience
+          </div>
+          <p style="font-size:0.875rem;color:var(--text);margin:0;">{{ drive.experience_required }}</p>
+        </div>
+        {% endif %}
+      </div>
+
+      {# ─── Skills Gap ─── #}
+      {% if matching or missing %}
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:20px;">
+        <div style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:12px;">
+          <i class="bi bi-code-slash me-1"></i>Skills Gap Analysis
+        </div>
+        {% if matching %}
+        <div style="margin-bottom:10px;">
+          <div style="font-size:0.72rem;color:#4ade80;font-weight:600;margin-bottom:6px;">
+            <i class="bi bi-check-circle-fill"></i> You have ({{ matching|length }})
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            {% for s in matching %}
+            <span style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);
+                         border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:600;color:#4ade80;">
+              <i class="bi bi-check2"></i> {{ s }}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% if missing %}
+        <div>
+          <div style="font-size:0.72rem;color:#f87171;font-weight:600;margin-bottom:6px;">
+            <i class="bi bi-x-circle-fill"></i> You're missing ({{ missing|length }})
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            {% for s in missing %}
+            <span style="background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);
+                         border-radius:6px;padding:4px 10px;font-size:0.75rem;font-weight:600;color:#f87171;">
+              {{ s }}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        {% if already_applied %}
+        <span class="badge badge-approved" style="padding:10px 20px;font-size:0.85rem;">
+          <i class="bi bi-check-circle-fill"></i> Already Applied
+        </span>
+        {% else %}
+        <a href="{{ url_for('apply_drive', drive_id=drive.id) }}" class="btn btn-primary" style="padding:12px 28px;font-size:0.95rem;">
+          <i class="bi bi-send-fill"></i> Apply Now
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

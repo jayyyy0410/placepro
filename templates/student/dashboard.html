@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% block title %}Available Drives — PlacePro{% endblock %}
+{% block page_title %}Available Drives{% endblock %}
+{% block content %}
+
+{# ─── Profile Completeness Banner ─── #}
+{% if completeness < 60 %}
+<div class="alert alert-warning fade-up" style="margin-bottom:18px;">
+  <i class="bi bi-person-exclamation" style="font-size:1.1rem;flex-shrink:0;"></i>
+  <div>
+    Your profile is <strong>{{ completeness }}% complete</strong>. A fuller profile improves your match score on every drive.
+    <a href="{{ url_for('student_profile') }}" style="color:var(--amber);font-weight:600;margin-left:6px;">Complete it →</a>
+  </div>
+</div>
+{% endif %}
+
+{# ─── Deadline Alerts ─── #}
+{% if deadline_alerts %}
+<div class="alert alert-warning fade-up" style="margin-bottom:18px;">
+  <i class="bi bi-alarm-fill" style="font-size:1.1rem;flex-shrink:0;color:#f97316;"></i>
+  <div>
+    <strong>Deadline approaching!</strong>
+    {% for d in deadline_alerts[:2] %}
+      <a href="{{ url_for('drive_detail_student', drive_id=d.id) }}"
+         style="color:#fbbf24;font-weight:600;">{{ d.job_title }} @ {{ d.company.company_name }}</a>
+      {% set dl = days_until(d.deadline) %}
+      — <span style="color:#f87171;font-weight:700;">{{ 'Today!' if dl == 0 else (dl|string + ' day' + ('s' if dl != 1 else '') + ' left') }}</span>{% if not loop.last %} · {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ─── AI Recommendations ─── #}
+{% if recommendations %}
+<div class="fade-up" style="margin-bottom:24px;">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+    <span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);">
+      <i class="bi bi-stars" style="color:#fbbf24;"></i> AI Recommendations
+    </span>
+    <div style="flex:1;height:1px;background:var(--border);"></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">
+    {% for drive, score in recommendations %}
+    <a href="{{ url_for('drive_detail_student', drive_id=drive.id) }}"
+       style="text-decoration:none;display:block;background:var(--surface);border:1px solid rgba(251,191,36,0.25);
+              border-radius:var(--radius);padding:16px;transition:transform 0.2s,border-color 0.2s;"
+       onmouseover="this.style.transform='translateY(-3px)';this.style.borderColor='rgba(251,191,36,0.5)'"
+       onmouseout="this.style.transform='';this.style.borderColor='rgba(251,191,36,0.25)'">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div style="font-size:0.85rem;font-weight:700;color:var(--text);">{{ drive.job_title }}</div>
+        <div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:99px;
+                    padding:2px 10px;font-size:0.72rem;font-weight:800;color:#fbbf24;white-space:nowrap;flex-shrink:0;margin-left:8px;">
+          {{ score }}% match
+        </div>
+      </div>
+      <div style="font-size:0.75rem;color:var(--muted);">{{ drive.company.company_name }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{# ─── Search + Filter Bar ─── #}
+<form method="GET" style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;" class="fade-up">
+  <div style="flex:1;min-width:180px;position:relative;">
+    <i class="bi bi-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:0.9rem;pointer-events:none;"></i>
+    <input type="text" name="search" class="form-control" style="padding-left:40px;"
+           placeholder="Search job title, skills, company..." value="{{ search }}">
+  </div>
+  <label style="display:flex;align-items:center;gap:8px;padding:0 14px;background:var(--surface);
+                border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:0.82rem;color:var(--muted2);">
+    <input type="checkbox" name="eligible" value="1" {% if only_eligible %}checked{% endif %}
+           style="accent-color:var(--accent);">
+    Eligible only (CGPA filter)
+  </label>
+  <button type="submit" class="btn btn-primary" style="padding:10px 20px;">Search</button>
+  {% if search or only_eligible %}
+  <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary" style="padding:10px 16px;"><i class="bi bi-x"></i></a>
+  {% endif %}
+  <a href="{{ url_for('student_calendar') }}" class="btn btn-outline-secondary" style="padding:10px 14px;" title="Deadline Calendar">
+    <i class="bi bi-calendar3"></i>
+  </a>
+  <a href="{{ url_for('student_progress') }}" class="btn btn-outline-secondary" style="padding:10px 14px;" title="My Progress">
+    <i class="bi bi-bar-chart-line"></i>
+  </a>
+</form>
+
+{# ─── Drive Cards ─── #}
+{% if drives %}
+<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;
+            color:var(--muted);margin-bottom:12px;" class="fade-up">
+  Open Opportunities
+  <span style="background:rgba(99,102,241,0.1);color:var(--accent);border-radius:99px;
+               padding:2px 8px;font-size:0.65rem;margin-left:6px;">{{ drives|length }}</span>
+</div>
+{% endif %}
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:36px;">
+{% for drive in drives %}
+{% set score = match_scores[drive.id] %}
+<div class="fade-up" style="animation-delay:{{ loop.index0 * 0.04 }}s;
+     background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+     padding:20px;transition:border-color 0.2s,transform 0.2s;display:flex;flex-direction:column;gap:0;">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+    <div style="width:40px;height:40px;border-radius:10px;background:rgba(99,102,241,0.12);
+                display:grid;place-items:center;font-size:1rem;color:var(--accent);flex-shrink:0;font-weight:800;">
+      {{ drive.company.company_name[0].upper() }}
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+      {# Match score badge #}
+      <div style="background:{% if score>=80 %}rgba(74,222,128,0.1){% elif score>=60 %}rgba(167,139,250,0.1){% elif score>=40 %}rgba(251,191,36,0.1){% else %}rgba(248,113,113,0.1){% endif %};
+                  border:1px solid {% if score>=80 %}rgba(74,222,128,0.3){% elif score>=60 %}rgba(167,139,250,0.3){% elif score>=40 %}rgba(251,191,36,0.3){% else %}rgba(248,113,113,0.3){% endif %};
+                  border-radius:99px;padding:2px 10px;font-size:0.7rem;font-weight:800;
+                  color:{{ score_color(score) }};">
+        {{ score }}%
+      </div>
+      {% if drive.salary_range %}
+      <span style="background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.2);
+                   border-radius:6px;padding:3px 9px;font-size:0.7rem;font-weight:700;
+                   color:#4ade80;font-family:'JetBrains Mono',monospace;">{{ drive.salary_range }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <h3 style="font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:4px;">{{ drive.job_title }}</h3>
+  <p style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:5px;">
+    <i class="bi bi-building"></i> {{ drive.company.company_name }}
+  </p>
+
+  {% if drive.job_description %}
+  <p style="font-size:0.8rem;color:var(--muted2);line-height:1.5;margin-bottom:12px;
+            display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+    {{ drive.job_description }}
+  </p>
+  {% endif %}
+
+  {% if drive.deadline %}
+  {% set dl = days_until(drive.deadline) %}
+  <div style="display:flex;align-items:center;gap:6px;font-size:0.75rem;margin-bottom:14px;
+              color:{% if dl is not none and dl <= 2 %}#f87171{% elif dl is not none and dl <= 5 %}#fbbf24{% else %}var(--muted){% endif %};">
+    <i class="bi bi-calendar3"></i>
+    {% if dl is not none and dl <= 0 %}Deadline: <strong>Today!</strong>
+    {% elif dl is not none %}Deadline in <strong>{{ dl }} day{{ 's' if dl != 1 else '' }}</strong>
+    {% else %}{{ drive.deadline.strftime('%d %b %Y') }}{% endif %}
+  </div>
+  {% endif %}
+
+  <div style="margin-top:auto;display:flex;gap:8px;">
+    {% if drive.id in applied_ids %}
+    <span class="badge badge-approved" style="padding:6px 12px;font-size:0.75rem;">
+      <i class="bi bi-check-circle-fill"></i> Applied
+    </span>
+    <a href="{{ url_for('drive_detail_student', drive_id=drive.id) }}"
+       class="btn btn-outline-secondary btn-sm" style="flex:1;justify-content:center;">
+      <i class="bi bi-eye"></i> Details
+    </a>
+    {% else %}
+    <a href="{{ url_for('apply_drive', drive_id=drive.id) }}"
+       class="btn btn-primary btn-sm" style="flex:1;justify-content:center;">
+      <i class="bi bi-send-fill"></i> Apply Now
+    </a>
+    <a href="{{ url_for('drive_detail_student', drive_id=drive.id) }}"
+       class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-eye"></i>
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div style="grid-column:1/-1;text-align:center;padding:64px;color:var(--muted);">
+  <i class="bi bi-search" style="font-size:3rem;display:block;margin-bottom:14px;opacity:0.4;"></i>
+  <div style="font-size:1rem;font-weight:600;margin-bottom:6px;">No drives found</div>
+  <div style="font-size:0.82rem;">Try different search terms or check back later.</div>
+</div>
+{% endfor %}
+</div>
+
+{# ─── My Applications ─── #}
+<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+  <h2 style="font-size:0.95rem;font-weight:700;white-space:nowrap;">My Applications</h2>
+  <div style="flex:1;height:1px;background:var(--border);"></div>
+  <a href="{{ url_for('student_history') }}" style="font-size:0.78rem;color:var(--accent);">View full history →</a>
+</div>
+
+<div class="card fade-up">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Company</th><th>Job Title</th><th>Applied On</th><th>Status</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+      {% for app in my_apps %}
+      <tr>
+        <td style="font-weight:600;font-size:0.875rem;">{{ app.drive.company.company_name }}</td>
+        <td style="color:var(--muted2);font-size:0.82rem;">{{ app.drive.job_title }}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--muted);">{{ app.applied_at.strftime('%d %b %Y') }}</td>
+        <td><span class="badge badge-{{ app.status | lower }}">{{ app.status }}</span></td>
+        <td>
+          {% if app.status == 'Applied' %}
+          <a href="{{ url_for('withdraw_application', application_id=app.id) }}" class="btn btn-outline-danger btn-xs">
+            <i class="bi bi-x-circle"></i> Withdraw
+          </a>
+          {% else %}<span style="font-size:0.72rem;color:var(--muted);">—</span>{% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--muted);">No applications yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<style>
+div[style*="display:flex;flex-direction:column"]:hover { border-color:var(--border2) !important; transform:translateY(-3px); }
+</style>
+{% endblock %}

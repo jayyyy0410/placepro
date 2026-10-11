@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block title %}My Progress — PlacePro{% endblock %}
+{% block page_title %}My Progress{% endblock %}
+{% block content %}
+
+{# ─── Top Stats ─── #}
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;">
+  <div class="stat-card fade-up" style="text-align:center;">
+    <div class="stat-val" style="color:#818cf8;">{{ progress.total }}</div>
+    <div class="stat-label">Total Applied</div>
+  </div>
+  <div class="stat-card fade-up" style="text-align:center;animation-delay:0.05s;">
+    <div class="stat-val" style="color:#22d3ee;">{{ progress.shortlisted }}</div>
+    <div class="stat-label">Shortlisted</div>
+  </div>
+  <div class="stat-card fade-up" style="text-align:center;animation-delay:0.1s;">
+    <div class="stat-val" style="color:#4ade80;">{{ progress.selected }}</div>
+    <div class="stat-label">Selected</div>
+  </div>
+  <div class="stat-card fade-up" style="text-align:center;animation-delay:0.15s;">
+    <div class="stat-val" style="color:#f87171;">{{ progress.rejected }}</div>
+    <div class="stat-label">Rejected</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+  {# ─── Profile Quality Card ─── #}
+  <div class="card fade-up">
+    <div class="card-body" style="padding:22px 24px;">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:14px;">
+        <i class="bi bi-person-check me-1"></i> Profile Quality
+      </div>
+
+      {# Circular score #}
+      <div style="display:flex;align-items:center;gap:20px;margin-bottom:16px;">
+        <div style="position:relative;width:80px;height:80px;flex-shrink:0;">
+          <svg viewBox="0 0 80 80" style="width:80px;height:80px;transform:rotate(-90deg);">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="var(--surface2)" stroke-width="7"/>
+            <circle cx="40" cy="40" r="34" fill="none" stroke="{{ qcolor }}" stroke-width="7"
+                    stroke-dasharray="{{ (quality_score / 100 * 213.6)|round(1) }} 213.6"
+                    stroke-linecap="round"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <span style="font-size:1.3rem;font-weight:800;color:{{ qcolor }};line-height:1;">{{ quality_score }}</span>
+            <span style="font-size:0.55rem;color:var(--muted);font-weight:600;">/ 100</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:1rem;font-weight:700;color:{{ qcolor }};margin-bottom:4px;">{{ qlabel }}</div>
+          <div style="font-size:0.75rem;color:var(--muted);">Profile completeness: <strong style="color:var(--text);">{{ completeness }}%</strong></div>
+          <div style="width:120px;height:4px;background:var(--surface2);border-radius:99px;overflow:hidden;margin-top:6px;">
+            <div style="height:100%;width:{{ completeness }}%;background:var(--grad);border-radius:99px;"></div>
+          </div>
+        </div>
+      </div>
+
+      {% if quality_tips %}
+      <div style="font-size:0.72rem;font-weight:600;color:var(--muted);margin-bottom:8px;">Improve by:</div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        {% for tip in quality_tips[:4] %}
+        <div style="display:flex;align-items:center;gap:8px;font-size:0.78rem;color:var(--muted2);">
+          <i class="bi bi-chevron-right" style="color:var(--accent);flex-shrink:0;font-size:0.65rem;"></i>{{ tip }}
+        </div>
+        {% endfor %}
+      </div>
+      <a href="{{ url_for('student_profile') }}" class="btn btn-primary btn-sm" style="margin-top:14px;">
+        <i class="bi bi-pencil"></i> Update Profile
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ─── Conversion Funnel ─── #}
+  <div class="card fade-up" style="animation-delay:0.05s;">
+    <div class="card-body" style="padding:22px 24px;">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:16px;">
+        <i class="bi bi-funnel me-1"></i> Application Funnel
+      </div>
+      {% set total = progress.total %}
+      {% for label, count, color in [
+        ('Applied',     total,                      '#818cf8'),
+        ('Shortlisted', progress.shortlisted,       '#22d3ee'),
+        ('Selected',    progress.selected,          '#4ade80'),
+      ] %}
+      <div style="margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:5px;">
+          <span style="color:var(--muted2);font-weight:600;">{{ label }}</span>
+          <span style="color:{{ color }};font-weight:700;font-family:'JetBrains Mono',monospace;">{{ count }}</span>
+        </div>
+        <div style="height:8px;background:var(--surface2);border-radius:99px;overflow:hidden;">
+          <div style="height:100%;width:{{ (count/total*100)|round if total else 0 }}%;
+                      background:{{ color }};border-radius:99px;transition:width 1s ease;"></div>
+        </div>
+      </div>
+      {% endfor %}
+      <div style="display:flex;gap:16px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+        <div style="text-align:center;flex:1;">
+          <div style="font-size:1.3rem;font-weight:800;color:#22d3ee;">{{ progress.shortlist_rate }}%</div>
+          <div style="font-size:0.68rem;color:var(--muted);">Shortlist Rate</div>
+        </div>
+        <div style="text-align:center;flex:1;">
+          <div style="font-size:1.3rem;font-weight:800;color:#4ade80;">{{ progress.selection_rate }}%</div>
+          <div style="font-size:0.68rem;color:var(--muted);">Selection Rate</div>
+        </div>
+        <div style="text-align:center;flex:1;">
+          <div style="font-size:1.3rem;font-weight:800;color:#f87171;">{{ progress.rejection_rate }}%</div>
+          <div style="font-size:0.68rem;color:var(--muted);">Rejection Rate</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ─── Recommendations ─── #}
+{% if recommendations %}
+<div class="card fade-up">
+  <div class="card-header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <i class="bi bi-stars" style="color:#fbbf24;"></i> Recommended For You
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Job Title</th><th>Company</th><th>Salary</th><th>Match</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+      {% for drive, score in recommendations %}
+      <tr>
+        <td style="font-weight:600;font-size:0.875rem;">{{ drive.job_title }}</td>
+        <td style="color:var(--muted2);font-size:0.82rem;">{{ drive.company.company_name }}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:#4ade80;">{{ drive.salary_range or '—' }}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:50px;height:5px;background:var(--surface2);border-radius:99px;overflow:hidden;">
+              <div style="height:100%;width:{{ score }}%;background:{{ score_color(score) }};border-radius:99px;"></div>
+            </div>
+            <span style="font-size:0.78rem;font-weight:700;color:{{ score_color(score) }};">{{ score }}%</span>
+          </div>
+        </td>
+        <td>
+          <a href="{{ url_for('drive_detail_student', drive_id=drive.id) }}" class="btn btn-outline-primary btn-xs">
+            <i class="bi bi-eye"></i> View
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

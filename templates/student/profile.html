@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% block title %}My Profile — PlacePro{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block content %}
+
+<div style="max-width:800px;">
+
+{# ─── Placed Badge ─── #}
+{% if is_placed %}
+<div style="display:flex;align-items:center;gap:12px;background:rgba(34,197,94,0.08);
+            border:1px solid rgba(34,197,94,0.2);border-radius:var(--radius);padding:14px 20px;
+            margin-bottom:16px;" class="fade-up">
+  <div style="width:40px;height:40px;border-radius:10px;background:rgba(34,197,94,0.15);
+              display:grid;place-items:center;font-size:1.2rem;flex-shrink:0;">🎉</div>
+  <div>
+    <div style="font-size:0.9rem;font-weight:700;color:#4ade80;">Congratulations! You're Placed</div>
+    <div style="font-size:0.78rem;color:var(--muted);">Your application has been selected by a company.</div>
+  </div>
+</div>
+{% endif %}
+
+{# ─── Profile Completeness Bar ─── #}
+<div class="card fade-up" style="margin-bottom:14px;padding:16px 22px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <span style="font-size:0.78rem;font-weight:700;color:var(--muted2);">
+      <i class="bi bi-person-check me-1"></i>Profile Completeness
+    </span>
+    <span style="font-size:0.85rem;font-weight:800;
+                 color:{% if completeness >= 80 %}#4ade80{% elif completeness >= 50 %}#fbbf24{% else %}#f87171{% endif %};">
+      {{ completeness }}%
+    </span>
+  </div>
+  <div style="height:6px;background:var(--surface2);border-radius:99px;overflow:hidden;">
+    <div style="height:100%;width:{{ completeness }}%;border-radius:99px;transition:width 1s ease;
+                background:{% if completeness >= 80 %}linear-gradient(90deg,#22c55e,#10b981)
+                            {% elif completeness >= 50 %}linear-gradient(90deg,#f59e0b,#f97316)
+                            {% else %}linear-gradient(90deg,#ef4444,#f87171){% endif %};"></div>
+  </div>
+  <div style="font-size:0.72rem;color:var(--muted);margin-top:5px;">
+    {% if completeness < 100 %}Fill in all fields to maximize your match score on every drive.{% else %}🎉 Profile 100% complete!{% endif %}
+  </div>
+</div>
+
+{# ─── Resume Quality Card ─── #}
+<div class="card fade-up" style="margin-bottom:14px;">
+  <div class="card-body" style="padding:18px 22px;">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div style="width:58px;height:58px;border-radius:14px;flex-shrink:0;position:relative;">
+        <svg viewBox="0 0 58 58" style="width:58px;height:58px;transform:rotate(-90deg);">
+          <circle cx="29" cy="29" r="24" fill="none" stroke="var(--surface2)" stroke-width="5"/>
+          <circle cx="29" cy="29" r="24" fill="none" stroke="{{ qcolor }}" stroke-width="5"
+                  stroke-dasharray="{{ (quality_score/100*150.8)|round(1) }} 150.8" stroke-linecap="round"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:0.85rem;font-weight:800;color:{{ qcolor }};">{{ quality_score }}</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.85rem;font-weight:700;color:{{ qcolor }};margin-bottom:3px;">
+          Profile Score: {{ qlabel }}
+        </div>
+        {% if quality_tips %}
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          {% for tip in quality_tips[:3] %}
+          <div style="font-size:0.75rem;color:var(--muted);display:flex;align-items:center;gap:6px;">
+            <i class="bi bi-arrow-right-circle" style="color:var(--accent);flex-shrink:0;"></i>{{ tip }}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="font-size:0.78rem;color:#4ade80;"><i class="bi bi-check-circle-fill"></i> Excellent profile! Keep it updated.</div>
+        {% endif %}
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="window.print()">
+          <i class="bi bi-printer"></i> Print
+        </button>
+        <a href="{{ url_for('student_progress') }}" class="btn btn-outline-primary btn-sm">
+          <i class="bi bi-bar-chart-line"></i> Progress
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ─── Resume Parser ─── #}
+<div class="card fade-up" style="margin-bottom:14px;border:1px solid rgba(99,102,241,0.25);">
+  <div class="card-body" style="padding:18px 22px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:42px;height:42px;border-radius:10px;background:var(--grad);
+                    display:grid;place-items:center;flex-shrink:0;box-shadow:0 0 14px rgba(99,102,241,0.4);">
+          <i class="bi bi-file-earmark-person-fill" style="color:#fff;font-size:1rem;"></i>
+        </div>
+        <div>
+          <div style="font-size:0.9rem;font-weight:700;margin-bottom:2px;">Resume Auto-Fill</div>
+          <div style="font-size:0.75rem;color:var(--muted);">Upload PDF to auto-fill profile fields</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <label for="parseFile" style="cursor:pointer;">
+          <div class="btn btn-primary btn-sm"><i class="bi bi-upload"></i> Upload & Parse</div>
+          <input type="file" id="parseFile" accept=".pdf" style="display:none;" onchange="parseResume(this)">
+        </label>
+        {% if student.resume_filename %}
+        <button class="btn btn-outline-primary btn-sm" onclick="parseExisting()">
+          <i class="bi bi-magic"></i> Parse Existing
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    <div id="parserStatus" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+      <div id="parserLoading" style="display:flex;align-items:center;gap:10px;color:var(--muted);">
+        <div class="spinner"></div><span style="font-size:0.85rem;">Analysing resume…</span>
+      </div>
+      <div id="parserResult" style="display:none;">
+        <div style="font-size:0.75rem;font-weight:600;color:#4ade80;margin-bottom:10px;">
+          <i class="bi bi-check-circle-fill"></i> Extracted — review then click Apply
+        </div>
+        <div id="parserPreview" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="applyParsed()"><i class="bi bi-check-lg"></i> Apply to Form</button>
+          <button class="btn btn-secondary btn-sm" onclick="dismissParser()"><i class="bi bi-x-lg"></i> Dismiss</button>
+        </div>
+      </div>
+      <div id="parserError" style="display:none;color:#f87171;font-size:0.85rem;">
+        <i class="bi bi-x-circle-fill me-1"></i><span id="parserErrorMsg"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ─── Profile Form ─── #}
+<div class="card fade-up">
+  <div class="card-body" style="padding:28px;">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px;">
+      <div style="width:60px;height:60px;border-radius:15px;flex-shrink:0;
+                  background:linear-gradient(135deg,#6366f1,#8b5cf6);
+                  display:grid;place-items:center;font-size:1.5rem;font-weight:800;color:#fff;
+                  box-shadow:0 0 18px rgba(99,102,241,0.35);" id="avatarEl">
+        {{ student.full_name[0].upper() if student.full_name else current_user.username[0].upper() }}
+      </div>
+      <div>
+        <h2 style="font-size:1.1rem;font-weight:800;margin-bottom:3px;" id="previewName">
+          {{ student.full_name or current_user.username }}
+        </h2>
+        <p style="font-size:0.78rem;color:var(--muted);">{{ current_user.email }}</p>
+      </div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="profileForm">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+
+        {# Basic Info #}
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label"><i class="bi bi-person me-1"></i>Full Name</label>
+          <input type="text" name="full_name" id="f_name" class="form-control"
+                 value="{{ student.full_name or '' }}" placeholder="Your full name"
+                 oninput="document.getElementById('previewName').textContent=this.value||'{{ current_user.username }}'">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label"><i class="bi bi-telephone me-1"></i>Phone</label>
+          <input type="text" name="phone" id="f_phone" class="form-control"
+                 value="{{ student.phone or '' }}" placeholder="+91 98765 43210">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label"><i class="bi bi-building me-1"></i>Department</label>
+          <input type="text" name="department" id="f_dept" class="form-control"
+                 value="{{ student.department or '' }}" placeholder="CSE, ECE, IT">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label"><i class="bi bi-star me-1"></i>CGPA</label>
+          <input type="number" step="0.01" name="cgpa" id="f_cgpa" class="form-control"
+                 value="{{ student.cgpa or '' }}" min="0" max="10" placeholder="8.5">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label"><i class="bi bi-calendar me-1"></i>Graduation Year</label>
+          <input type="number" name="graduation_year" class="form-control"
+                 value="{{ student.graduation_year or '' }}" placeholder="2025" min="2000" max="2035">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label"><i class="bi bi-code-slash me-1"></i>Skills <span style="color:var(--muted);font-weight:400;">(comma separated)</span></label>
+          <input type="text" name="skills" id="f_skills" class="form-control"
+                 value="{{ student.skills or '' }}" placeholder="Python, Flask, SQL">
+        </div>
+
+        {# About #}
+        <div class="form-group" style="margin-bottom:0;grid-column:1/-1;">
+          <label class="form-label"><i class="bi bi-chat-square-text me-1"></i>About / Bio</label>
+          <textarea name="about" class="form-control" rows="3"
+                    placeholder="Brief description of yourself, your goals and interests...">{{ student.about or '' }}</textarea>
+        </div>
+
+        {# Links #}
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label"><i class="bi bi-linkedin me-1" style="color:#0a66c2;"></i>LinkedIn</label>
+          <input type="url" name="linkedin" class="form-control"
+                 value="{{ student.linkedin or '' }}" placeholder="https://linkedin.com/in/username">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label"><i class="bi bi-github me-1"></i>GitHub</label>
+          <input type="url" name="github" class="form-control"
+                 value="{{ student.github or '' }}" placeholder="https://github.com/username">
+        </div>
+        <div class="form-group" style="margin-bottom:0;grid-column:1/-1;">
+          <label class="form-label"><i class="bi bi-globe me-1"></i>Portfolio / Website</label>
+          <input type="url" name="portfolio_url" class="form-control"
+                 value="{{ student.portfolio_url or '' }}" placeholder="https://yourportfolio.com">
+        </div>
+
+        {# Resume #}
+        <div class="form-group" style="margin-bottom:0;grid-column:1/-1;">
+          <label class="form-label"><i class="bi bi-file-earmark-pdf me-1"></i>Resume <span style="color:var(--muted);font-weight:400;">(PDF only)</span></label>
+          <input type="file" name="resume" id="f_resume" class="form-control" accept=".pdf">
+          {% if student.resume_filename %}
+          <div style="display:flex;align-items:center;gap:10px;margin-top:10px;
+                      background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;">
+            <i class="bi bi-file-earmark-pdf-fill" style="color:#f87171;font-size:1.1rem;flex-shrink:0;"></i>
+            <div>
+              <div style="font-size:0.78rem;font-weight:600;">{{ student.resume_filename }}</div>
+            </div>
+            <a href="{{ url_for('static', filename='uploads/' + student.resume_filename) }}"
+               class="btn btn-outline-primary btn-xs" target="_blank" style="margin-left:auto;">
+              <i class="bi bi-eye"></i> View
+            </a>
+          </div>
+          {% endif %}
+        </div>
+
+        <div style="grid-column:1/-1;margin-top:4px;">
+          <button type="submit" class="btn btn-primary" style="padding:12px 24px;font-size:0.95rem;">
+            <i class="bi bi-check-circle-fill"></i> Save Changes
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# Skills Preview #}
+{% if student.skills %}
+<div class="card fade-up" style="margin-top:14px;">
+  <div class="card-body" style="padding:18px 22px;">
+    <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:10px;">
+      <i class="bi bi-code-slash me-1"></i>Your Skills
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;" id="skillsPreviewList">
+      {% for skill in student.skills.split(',') %}
+      <span style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);
+                   border-radius:7px;padding:5px 12px;font-size:0.8rem;font-weight:600;color:#818cf8;">
+        {{ skill.strip() }}
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# External Profile Links #}
+{% if student.linkedin or student.github or student.portfolio_url %}
+<div class="card fade-up" style="margin-top:14px;">
+  <div class="card-body" style="padding:16px 22px;display:flex;gap:12px;flex-wrap:wrap;">
+    {% if student.linkedin %}
+    <a href="{{ student.linkedin }}" target="_blank" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-linkedin"></i> LinkedIn
+    </a>
+    {% endif %}
+    {% if student.github %}
+    <a href="{{ student.github }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-github"></i> GitHub
+    </a>
+    {% endif %}
+    {% if student.portfolio_url %}
+    <a href="{{ student.portfolio_url }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-globe"></i> Portfolio
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+</div>
+
+<style>
+.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);
+          border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media print{.sidebar,.topbar,#parseFile,.card:nth-child(-n+3),button,.btn,input[type="file"]{display:none!important}
+  .main-content{margin-left:0!important;padding-top:0!important}body{background:#fff!important;color:#000!important}}
+</style>
+<script>
+  let _parsed=null;
+  function showStatus(){document.getElementById('parserStatus').style.display='block';document.getElementById('parserLoading').style.display='flex';document.getElementById('parserResult').style.display='none';document.getElementById('parserError').style.display='none';}
+  function showResult(data){_parsed=data;document.getElementById('parserLoading').style.display='none';document.getElementById('parserResult').style.display='block';const p=document.getElementById('parserPreview');p.innerHTML='';[['name','Name','person'],['phone','Phone','telephone'],['cgpa','CGPA','star'],['department','Dept','building']].forEach(([k,l,i])=>{if(!data[k])return;p.innerHTML+=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 13px;"><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px;"><i class="bi bi-${i}"></i> ${l}</div><div style="font-size:.85rem;font-weight:600;">${data[k]}</div></div>`;});if(data.skills&&data.skills.length)p.innerHTML+=`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 13px;grid-column:1/-1;"><div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px;"><i class="bi bi-code-slash"></i> Skills (${data.skills.length})</div><div style="display:flex;flex-wrap:wrap;gap:5px;">${data.skills.map(s=>`<span style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:5px;padding:2px 8px;font-size:.72rem;font-weight:600;color:#818cf8">${s}</span>`).join('')}</div></div>`;}
+  function showError(msg){document.getElementById('parserLoading').style.display='none';document.getElementById('parserError').style.display='block';document.getElementById('parserErrorMsg').textContent=msg;}
+  function parseResume(input){const file=input.files[0];if(!file)return;showStatus();const fd=new FormData();fd.append('resume',file);fetch('{{ url_for("parse_resume_api") }}',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{if(d.error)showError(d.error);else showResult(d);}).catch(()=>showError('Network error'));input.value='';}
+  function parseExisting(){showStatus();fetch('{{ url_for("parse_resume_api") }}',{method:'POST',body:new FormData()}).then(r=>r.json()).then(d=>{if(d.error)showError(d.error);else showResult(d);}).catch(()=>showError('Network error'));}
+  function applyParsed(){if(!_parsed)return;if(_parsed.name){document.getElementById('f_name').value=_parsed.name;document.getElementById('previewName').textContent=_parsed.name;}if(_parsed.phone)document.getElementById('f_phone').value=_parsed.phone;if(_parsed.cgpa)document.getElementById('f_cgpa').value=_parsed.cgpa;if(_parsed.department)document.getElementById('f_dept').value=_parsed.department;if(_parsed.skills_str){document.getElementById('f_skills').value=_parsed.skills_str;const l=document.getElementById('skillsPreviewList');if(l)l.innerHTML=_parsed.skills.map(s=>`<span style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:7px;padding:5px 12px;font-size:.8rem;font-weight:600;color:#818cf8">${s}</span>`).join('');}dismissParser();['f_name','f_phone','f_cgpa','f_dept','f_skills'].forEach(id=>{const el=document.getElementById(id);if(el&&el.value){el.style.borderColor='#4ade80';el.style.boxShadow='0 0 0 3px rgba(34,197,94,.15)';setTimeout(()=>{el.style.borderColor='';el.style.boxShadow='';},2000);}});}
+  function dismissParser(){document.getElementById('parserStatus').style.display='none';_parsed=null;}
+</script>
+{% endblock %}

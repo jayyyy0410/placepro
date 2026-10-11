@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Placement Drives — PlacePro{% endblock %}
+{% block page_title %}Placement Drives{% endblock %}
+{% block content %}
+
+<div class="card fade-up">
+  <div class="card-header">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <i class="bi bi-calendar-event-fill" style="color:var(--amber);"></i>
+      <span>All Drives</span>
+      <span class="badge badge-info" style="margin-left:4px;">{{ drives|length }}</span>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Job Title</th>
+          <th>Company</th>
+          <th>Skills Required</th>
+          <th>Salary</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in drives %}
+        <tr>
+          <td style="color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.78rem;">{{ d.id }}</td>
+          <td style="font-weight:600;font-size:0.875rem;">{{ d.job_title }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:28px;height:28px;border-radius:7px;background:rgba(245,158,11,0.12);
+                        display:grid;place-items:center;font-size:0.7rem;color:#fbbf24;flex-shrink:0;">
+                {{ d.company.company_name[0].upper() }}
+              </div>
+              <span style="font-size:0.82rem;color:var(--muted2);">{{ d.company.company_name }}</span>
+            </div>
+          </td>
+          <td style="max-width:200px;">
+            <div style="display:flex;flex-wrap:wrap;gap:4px;">
+              {% if d.required_skills %}
+              {% for skill in d.required_skills.split(',')[:3] %}
+              <span style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;
+                         padding:2px 7px;font-size:0.7rem;color:var(--muted2);">{{ skill.strip() }}</span>
+              {% endfor %}
+              {% if d.required_skills.split(',')|length > 3 %}
+              <span style="font-size:0.7rem;color:var(--muted);">+{{ d.required_skills.split(',')|length - 3 }}</span>
+              {% endif %}
+              {% else %}—{% endif %}
+            </div>
+          </td>
+          <td style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--amber);">
+            {{ d.salary_range or '—' }}
+          </td>
+          <td>
+            <span class="badge badge-{{ d.status | lower }}">
+              {% if d.status == 'Approved' %}<i class="bi bi-check-circle-fill"></i>
+              {% elif d.status == 'Rejected' %}<i class="bi bi-x-circle-fill"></i>
+              {% elif d.status == 'Closed' %}<i class="bi bi-lock-fill"></i>
+              {% else %}<i class="bi bi-clock-fill"></i>{% endif %}
+              {{ d.status }}
+            </span>
+          </td>
+          <td>
+            {% if d.status == 'Pending' %}
+            <div style="display:flex;gap:6px;">
+              <a href="{{ url_for('approve_drive', id=d.id) }}" class="btn btn-success btn-xs">
+                <i class="bi bi-check-lg"></i> Approve
+              </a>
+              <a href="{{ url_for('reject_drive', id=d.id) }}" class="btn btn-danger btn-xs">
+                <i class="bi bi-x-lg"></i> Reject
+              </a>
+            </div>
+            {% else %}
+            <span style="font-size:0.75rem;color:var(--muted);">No actions</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="text-align:center;padding:48px;color:var(--muted);">
+            <i class="bi bi-calendar-x" style="font-size:2rem;display:block;margin-bottom:10px;"></i>
+            No drives found.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
