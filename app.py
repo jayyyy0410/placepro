@@ -18,6 +18,12 @@ app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
 
+# Initialise DB + uploads dir on every cold start (needed for Vercel serverless)
+with app.app_context():
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    db.create_all()
+
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
