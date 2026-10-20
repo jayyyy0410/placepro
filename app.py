@@ -3,6 +3,23 @@ from datetime import datetime as _dt
 from sqlalchemy import event
 import re as _re
 
+# ── Flask & project imports ───────────────────────────────────────────────────
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+from config import Config
+from models import db, User, Student, Company, PlacementDrive, Application
+from functools import wraps
+import os
+from resume_parser import parse_resume
+from utils import (
+    compute_match_score, compute_skills_gap, compute_resume_quality,
+    compute_profile_completeness, get_recommendations,
+    compute_student_progress, drives_approaching_deadline, days_until,
+    score_label, score_color, quality_label
+)
+
 # ── Live SQL Query Logger ────────────────────────────────────────────────────
 _query_log = deque(maxlen=100)   # keeps last 100 queries in memory
 
