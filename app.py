@@ -55,30 +55,29 @@ with app.app_context():
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     db.create_all()
 
-# ── Wire up query listener AFTER engine is created ───────────────────────────
-@event.listens_for(db.engine, 'before_cursor_execute')
-def _log_query(conn, cursor, statement, parameters, context, executemany):
-    stmt_clean = ' '.join(statement.split())   # collapse whitespace
-    op_match   = _re.match(r'^\s*(\w+)', stmt_clean)
-    op         = op_match.group(1).upper() if op_match else 'SQL'
+    # ── Wire up query listener INSIDE app context so db.engine is available ──
+    def _log_query(conn, cursor, statement, parameters, context, executemany):
+        stmt_clean = ' '.join(statement.split())
+        op_match   = _re.match(r'^\s*(\w+)', stmt_clean)
+        op         = op_match.group(1).upper() if op_match else 'SQL'
 
-    # Skip noisy PRAGMA / BEGIN / COMMIT internals
-    if op in ('PRAGMA', 'BEGIN', 'COMMIT', 'ROLLBACK', 'SAVEPOINT', 'RELEASE'):
-        return
+        if op in ('PRAGMA', 'BEGIN', 'COMMIT', 'ROLLBACK', 'SAVEPOINT', 'RELEASE'):
+            return
 
-    # Extract first table name (FROM … / INTO … / UPDATE … / TABLE …)
-    tbl_match = _re.search(
-        r'(?:FROM|INTO|UPDATE|TABLE|JOIN)\s+"?(\w+)"?', stmt_clean, _re.IGNORECASE)
-    table = tbl_match.group(1).lower() if tbl_match else None
+        tbl_match = _re.search(
+            r'(?:FROM|INTO|UPDATE|TABLE|JOIN)\s+"?(\w+)"?', stmt_clean, _re.IGNORECASE)
+        table = tbl_match.group(1).lower() if tbl_match else None
 
-    _query_log.append({
-        'time':    _dt.now().strftime('%H:%M:%S'),
-        'op':      op,
-        'table':   table or '—',
-        'color':   _OP_COLORS.get(op, '#94a3b8'),
-        'desc':    _describe(op, table, stmt_clean),
-        'sql':     stmt_clean[:300],   # truncate very long queries
-    })
+        _query_log.append({
+            'time':  _dt.now().strftime('%H:%M:%S'),
+            'op':    op,
+            'table': table or '—',
+            'color': _OP_COLORS.get(op, '#94a3b8'),
+            'desc':  _describe(op, table, stmt_clean),
+            'sql':   stmt_clean[:300],
+        })
+
+    event.listen(db.engine, 'before_cursor_execute', _log_query)
 
 
 login_manager = LoginManager()
