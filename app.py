@@ -1,18 +1,50 @@
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
-from config import Config
-from models import db, User, Student, Company, PlacementDrive, Application
-from functools import wraps
-import os
-from resume_parser import parse_resume
-from utils import (
-    compute_match_score, compute_skills_gap, compute_resume_quality,
-    compute_profile_completeness, get_recommendations,
-    compute_student_progress, drives_approaching_deadline, days_until,
-    score_label, score_color, quality_label
-)
+from collections import deque
+from datetime import datetime as _dt
+from sqlalchemy import event
+import re as _re
+
+# ── Live SQL Query Logger ────────────────────────────────────────────────────
+_query_log = deque(maxlen=100)   # keeps last 100 queries in memory
+
+_OP_COLORS = {
+    'SELECT': '#06b6d4',   # cyan
+    'INSERT': '#22c55e',   # green
+    'UPDATE': '#f59e0b',   # amber
+    'DELETE': '#ef4444',   # red
+    'CREATE': '#8b5cf6',   # purple
+    'ALTER':  '#ec4899',   # pink
+    'PRAGMA': '#64748b',   # muted
+}
+
+_FRIENDLY = {
+    'user':            'User',
+    'student':         'Student',
+    'company':         'Company',
+    'placement_drive': 'PlacementDrive',
+    'application':     'Application',
+}
+
+def _describe(op, table, stmt):
+    """Turn a raw SQL op+table into a friendly one-liner."""
+    t = _FRIENDLY.get(table, table.title() if table else '?')
+    if op == 'SELECT':
+        if 'COUNT' in stmt.upper():
+            return f'Counted rows in {t}'
+        if 'JOIN' in stmt.upper():
+            return f'Fetched {t} with JOIN'
+        return f'Fetched {t} records'
+    if op == 'INSERT':
+        return f'New {t} record added ✚'
+    if op == 'UPDATE':
+        return f'{t} record updated ✎'
+    if op == 'DELETE':
+        return f'{t} record deleted ✖'
+    if op == 'CREATE':
+        return f'Table {t} created'
+    if op == 'ALTER':
+        return f'Table {t} altered (migration)'
+    return f'{op} on {t}'
+
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -22,6 +54,31 @@ db.init_app(app)
 with app.app_context():
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     db.create_all()
+
+# ── Wire up query listener AFTER engine is created ───────────────────────────
+@event.listens_for(db.engine, 'before_cursor_execute')
+def _log_query(conn, cursor, statement, parameters, context, executemany):
+    stmt_clean = ' '.join(statement.split())   # collapse whitespace
+    op_match   = _re.match(r'^\s*(\w+)', stmt_clean)
+    op         = op_match.group(1).upper() if op_match else 'SQL'
+
+    # Skip noisy PRAGMA / BEGIN / COMMIT internals
+    if op in ('PRAGMA', 'BEGIN', 'COMMIT', 'ROLLBACK', 'SAVEPOINT', 'RELEASE'):
+        return
+
+    # Extract first table name (FROM … / INTO … / UPDATE … / TABLE …)
+    tbl_match = _re.search(
+        r'(?:FROM|INTO|UPDATE|TABLE|JOIN)\s+"?(\w+)"?', stmt_clean, _re.IGNORECASE)
+    table = tbl_match.group(1).lower() if tbl_match else None
+
+    _query_log.append({
+        'time':    _dt.now().strftime('%H:%M:%S'),
+        'op':      op,
+        'table':   table or '—',
+        'color':   _OP_COLORS.get(op, '#94a3b8'),
+        'desc':    _describe(op, table, stmt_clean),
+        'sql':     stmt_clean[:300],   # truncate very long queries
+    })
 
 
 login_manager = LoginManager()
@@ -804,6 +861,21 @@ def admin_heatmap():
         col_totals_apps=col_totals_apps, col_totals_placed=col_totals_placed,
         total_applications=len(rows),
         total_placements=sum(1 for r in rows if r.status in ('Selected', 'Placed')))
+
+
+# ── SQL Console ──────────────────────────────────────────────────────────────
+@app.route('/admin/console')
+@login_required
+@admin_required
+def admin_console():
+    return render_template('admin/console.html')
+
+@app.route('/admin/console/feed')
+@login_required
+@admin_required
+def admin_console_feed():
+    """JSON endpoint polled by the console page every 2 s."""
+    return jsonify(list(_query_log))
 
 
 if __name__ == '__main__':

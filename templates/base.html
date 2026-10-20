@@ -1115,6 +1115,11 @@
                 class="nav-link {% if request.endpoint == 'admin_heatmap' %}active{% endif %}">
                 <span class="nav-icon"><i class="bi bi-grid-3x3-gap-fill"></i></span> Heatmap
             </a>
+            <a href="{{ url_for('admin_console') }}"
+                class="nav-link {% if request.endpoint == 'admin_console' %}active{% endif %}"
+                style="{% if request.endpoint == 'admin_console' %}{% else %}color:#22c55e;{% endif %}">
+                <span class="nav-icon"><i class="bi bi-terminal-fill"></i></span> SQL Console
+            </a>
 
             {% elif current_user.role == 'company' %}
             <div class="nav-section-label">Main</div>

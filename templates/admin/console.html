@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+{% block title %}SQL Console — PlacePro{% endblock %}
+{% block page_title %}Live SQL Console{% endblock %}
+
+{% block extra_styles %}
+.console-wrap {
+    background: #050d1a;
+    border: 1px solid rgba(34,197,94,0.25);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(34,197,94,0.07), 0 8px 32px rgba(0,0,0,0.4);
+}
+.console-topbar {
+    background: #0a1628;
+    border-bottom: 1px solid rgba(34,197,94,0.15);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.console-dots { display:flex; gap:7px; }
+.dot { width:12px; height:12px; border-radius:50%; }
+.dot-r { background:#ef4444; }
+.dot-y { background:#f59e0b; }
+.dot-g { background:#22c55e; }
+.console-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: #4ade80;
+    letter-spacing: 0.05em;
+}
+.pulse-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #22c55e;
+    margin-left: auto;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); box-shadow:0 0 0 0 rgba(34,197,94,0.5); }
+    50% { opacity:0.7; transform:scale(1.15); box-shadow:0 0 0 5px rgba(34,197,94,0); }
+}
+.console-body {
+    height: 600px;
+    overflow-y: auto;
+    padding: 16px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    scroll-behavior: smooth;
+}
+.console-body::-webkit-scrollbar { width: 6px; }
+.console-body::-webkit-scrollbar-track { background: #050d1a; }
+.console-body::-webkit-scrollbar-thumb { background: rgba(34,197,94,0.3); border-radius:3px; }
+.q-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 9px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    animation: slideIn 0.3s ease both;
+    transition: background 0.2s;
+}
+.q-row:hover { background: rgba(255,255,255,0.03); cursor:pointer; }
+.q-row.expanded .q-sql { display:block !important; }
+@keyframes slideIn {
+    from { opacity:0; transform:translateX(-8px); }
+    to   { opacity:1; transform:none; }
+}
+.q-time { color:#475569; min-width:70px; padding-top:1px; font-size:0.72rem; }
+.q-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 5px;
+    min-width: 58px;
+    text-align: center;
+    letter-spacing: 0.04em;
+}
+.q-body { flex:1; }
+.q-desc { color: #cbd5e1; line-height:1.4; }
+.q-table { color:#475569; font-size:0.7rem; margin-top:2px; }
+.q-sql {
+    display: none;
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 6px;
+    border-left: 2px solid rgba(99,102,241,0.5);
+    color: #94a3b8;
+    font-size: 0.72rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+.console-footer {
+    background: #0a1628;
+    border-top: 1px solid rgba(34,197,94,0.15);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: #475569;
+}
+.stat-pill {
+    display:inline-flex; align-items:center; gap:6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 0.7rem;
+}
+.empty-state {
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:100%; gap:12px; color:#334155;
+    font-family:'JetBrains Mono',monospace;
+}
+.empty-state i { font-size:2.5rem; }
+.legend-row {
+    display:flex; gap:16px; flex-wrap:wrap;
+    margin-bottom: 20px;
+}
+.legend-item {
+    display:flex; align-items:center; gap:7px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:0.72rem; color:#64748b;
+}
+.legend-badge {
+    font-size:0.62rem; font-weight:700; padding:2px 8px;
+    border-radius:4px; letter-spacing:0.04em;
+}
+{% endblock %}
+
+{% block content %}
+
+<!-- Legend -->
+<div class="legend-row fade-up">
+    <div class="legend-item">
+        <span class="legend-badge" style="background:rgba(6,182,212,0.15);color:#06b6d4;">SELECT</span> Read data
+    </div>
+    <div class="legend-item">
+        <span class="legend-badge" style="background:rgba(34,197,94,0.15);color:#22c55e;">INSERT</span> New record
+    </div>
+    <div class="legend-item">
+        <span class="legend-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b;">UPDATE</span> Modified
+    </div>
+    <div class="legend-item">
+        <span class="legend-badge" style="background:rgba(239,68,68,0.15);color:#ef4444;">DELETE</span> Removed
+    </div>
+    <div class="legend-item">
+        <span class="legend-badge" style="background:rgba(139,92,246,0.15);color:#8b5cf6;">CREATE</span> Table created
+    </div>
+    <div class="legend-item" style="margin-left:auto; color:#334155; font-size:0.68rem;">
+        💡 Click any row to see full SQL
+    </div>
+</div>
+
+<!-- Console window -->
+<div class="console-wrap fade-up">
+
+    <!-- Top bar -->
+    <div class="console-topbar">
+        <div class="console-dots">
+            <div class="dot dot-r"></div>
+            <div class="dot dot-y"></div>
+            <div class="dot dot-g"></div>
+        </div>
+        <span class="console-title">placepro_db &gt; live query monitor</span>
+        <div class="pulse-dot" id="liveDot" title="Live — auto-refreshing"></div>
+    </div>
+
+    <!-- Query feed -->
+    <div class="console-body" id="consoleFeed">
+        <div class="empty-state" id="emptyState">
+            <i class="bi bi-terminal"></i>
+            <span>Waiting for database activity...</span>
+            <span style="font-size:0.68rem; color:#1e293b;">Do anything on the site — it'll show up here</span>
+        </div>
+    </div>
+
+    <!-- Footer stats -->
+    <div class="console-footer">
+        <span id="queryCount" class="stat-pill">
+            <i class="bi bi-database"></i> <span id="countNum">0</span> queries
+        </span>
+        <span id="lastTime" class="stat-pill">
+            <i class="bi bi-clock"></i> <span id="lastTimeVal">—</span>
+        </span>
+        <span class="stat-pill" id="insertCount" style="color:#22c55e;">
+            <i class="bi bi-plus-circle"></i> <span id="insNum">0</span> INSERTs
+        </span>
+        <span class="stat-pill" id="selectCount" style="color:#06b6d4;">
+            <i class="bi bi-search"></i> <span id="selNum">0</span> SELECTs
+        </span>
+        <span class="stat-pill" id="updateCount" style="color:#f59e0b;">
+            <i class="bi bi-pencil"></i> <span id="updNum">0</span> UPDATEs
+        </span>
+        <button onclick="clearConsole()"
+            style="margin-left:auto; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2);
+                   color:#ef4444; border-radius:6px; padding:4px 14px; cursor:pointer; font-family:inherit;
+                   font-size:0.72rem;">
+            <i class="bi bi-trash"></i> Clear
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let _rendered = [];
+let _autoScroll = true;
+
+const feed    = document.getElementById('consoleFeed');
+const empty   = document.getElementById('emptyState');
+const liveDot = document.getElementById('liveDot');
+
+feed.addEventListener('scroll', () => {
+    _autoScroll = feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 10;
+});
+
+function clearConsole() {
+    _rendered = [];
+    feed.innerHTML = '';
+    feed.appendChild(empty);
+    empty.style.display = 'flex';
+    document.getElementById('countNum').textContent = '0';
+    document.getElementById('insNum').textContent   = '0';
+    document.getElementById('selNum').textContent   = '0';
+    document.getElementById('updNum').textContent   = '0';
+    document.getElementById('lastTimeVal').textContent = '—';
+}
+
+function badgeHTML(op, color) {
+    const bg  = color + '22';
+    return `<span class="q-badge" style="background:${bg};color:${color};">${op}</span>`;
+}
+
+function renderRows(rows) {
+    // only add rows we haven't shown yet (match by index in array)
+    const newRows = rows.slice(_rendered.length);
+    if (!newRows.length) return;
+
+    if (empty.style.display !== 'none') empty.style.display = 'none';
+
+    newRows.forEach((q, i) => {
+        const div = document.createElement('div');
+        div.className = 'q-row';
+        div.innerHTML = `
+            <span class="q-time">${q.time}</span>
+            ${badgeHTML(q.op, q.color)}
+            <div class="q-body">
+                <div class="q-desc">${q.desc}</div>
+                <div class="q-table">table: <span style="color:#6366f1;">${q.table}</span></div>
+                <div class="q-sql">${escapeHTML(q.sql)}</div>
+            </div>`;
+        div.addEventListener('click', () => div.classList.toggle('expanded'));
+        feed.appendChild(div);
+        _rendered.push(q);
+    });
+
+    // update footer stats
+    const total = _rendered.length;
+    const ins  = _rendered.filter(q => q.op === 'INSERT').length;
+    const sel  = _rendered.filter(q => q.op === 'SELECT').length;
+    const upd  = _rendered.filter(q => q.op === 'UPDATE').length;
+    document.getElementById('countNum').textContent  = total;
+    document.getElementById('insNum').textContent    = ins;
+    document.getElementById('selNum').textContent    = sel;
+    document.getElementById('updNum').textContent    = upd;
+    document.getElementById('lastTimeVal').textContent = _rendered[_rendered.length - 1].time;
+
+    if (_autoScroll) feed.scrollTop = feed.scrollHeight;
+
+    // flash live dot
+    liveDot.style.background = '#4ade80';
+    setTimeout(() => liveDot.style.background = '#22c55e', 300);
+}
+
+function escapeHTML(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function fetchFeed() {
+    try {
+        const res  = await fetch('{{ url_for("admin_console_feed") }}');
+        const rows = await res.json();
+        renderRows(rows);
+    } catch(e) {
+        liveDot.style.background = '#ef4444';
+    }
+}
+
+// Poll every 2 seconds
+fetchFeed();
+setInterval(fetchFeed, 2000);
+</script>
+{% endblock %}
