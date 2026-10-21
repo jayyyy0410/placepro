@@ -85,13 +85,46 @@ with app.app_context():
             r'(?:FROM|INTO|UPDATE|TABLE|JOIN)\s+"?(\w+)"?', stmt_clean, _re.IGNORECASE)
         table = tbl_match.group(1).lower() if tbl_match else None
 
+        # ── Substitute real values for ? placeholders ─────────────────────────
+        def _fmt(v):
+            if v is None:
+                return 'NULL'
+            if isinstance(v, bool):
+                return '1' if v else '0'
+            if isinstance(v, (int, float)):
+                return str(v)
+            s = str(v)
+            if len(s) > 60:
+                s = s[:57] + '...'
+            return "'" + s.replace("'", "''") + "'"
+
+        try:
+            params = parameters
+            # executemany gives a list of tuples; just show first row
+            if executemany and isinstance(params, (list, tuple)) and params:
+                params = params[0]
+            if isinstance(params, (list, tuple)):
+                parts = [_fmt(v) for v in params]
+                compiled = stmt_clean
+                for part in parts:
+                    compiled = compiled.replace('?', part, 1)
+            elif isinstance(params, dict):
+                compiled = stmt_clean
+                for k, v in params.items():
+                    compiled = compiled.replace(f':{k}', _fmt(v))
+            else:
+                compiled = stmt_clean
+        except Exception:
+            compiled = stmt_clean
+
         _query_log.append({
-            'time':  _dt.now().strftime('%H:%M:%S'),
-            'op':    op,
-            'table': table or '—',
-            'color': _OP_COLORS.get(op, '#94a3b8'),
-            'desc':  _describe(op, table, stmt_clean),
-            'sql':   stmt_clean[:300],
+            'time':     _dt.now().strftime('%H:%M:%S'),
+            'op':       op,
+            'table':    table or '—',
+            'color':    _OP_COLORS.get(op, '#94a3b8'),
+            'desc':     _describe(op, table, stmt_clean),
+            'sql':      compiled[:500],   # real values shown
+            'sql_raw':  stmt_clean[:500], # original with ?
         })
 
     event.listen(db.engine, 'before_cursor_execute', _log_query)

@@ -88,7 +88,6 @@
     color: #94a3b8;
     font-size: 0.72rem;
     line-height: 1.6;
-    white-space: pre-wrap;
     word-break: break-all;
 }
 .console-footer {
@@ -251,7 +250,7 @@ function renderRows(rows) {
             <div class="q-body">
                 <div class="q-desc">${q.desc}</div>
                 <div class="q-table">table: <span style="color:#6366f1;">${q.table}</span></div>
-                <div class="q-sql">${escapeHTML(q.sql)}</div>
+                <div class="q-sql">${highlightSQL(q.sql)}</div>
             </div>`;
         div.addEventListener('click', () => div.classList.toggle('expanded'));
         feed.appendChild(div);
@@ -278,6 +277,27 @@ function renderRows(rows) {
 
 function escapeHTML(s) {
     return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function highlightSQL(sql) {
+    // Escape HTML first
+    let s = escapeHTML(sql);
+    // Highlight string literals (single-quoted)
+    s = s.replace(/'([^']*)'/g, '<span style="color:#4ade80;">\'$1\'</span>');
+    // Highlight numbers (standalone)
+    s = s.replace(/\b(\d+(\.\d+)?)\b/g, '<span style="color:#fb923c;">$1</span>');
+    // Highlight NULL
+    s = s.replace(/\bNULL\b/g, '<span style="color:#94a3b8;">NULL</span>');
+    // Highlight SQL keywords
+    const kws = ['SELECT','INSERT','UPDATE','DELETE','CREATE','ALTER','DROP',
+                 'INTO','FROM','WHERE','SET','VALUES','TABLE','JOIN','ON',
+                 'AND','OR','NOT','IN','IS','AS','INNER','LEFT','RIGHT',
+                 'GROUP BY','ORDER BY','LIMIT','OFFSET','DISTINCT','COUNT'];
+    kws.forEach(kw => {
+        const re = new RegExp('\\b' + kw + '\\b', 'gi');
+        s = s.replace(re, m => `<span style="color:#818cf8;font-weight:700;">${m.toUpperCase()}</span>`);
+    });
+    return s;
 }
 
 async function fetchFeed() {
